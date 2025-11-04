@@ -1,0 +1,35 @@
+[gd_scene load_steps=2 format=3 uid="uid://7mxxcr3jvooo"]
+
+[ext_resource type="Script" uid="uid://qvbffjinnqxn" path="res://SCRIPT/CREAR_SALA.gd" id="1_q1uwv"]
+
+[node name="Node2D" type="Node2D"]
+script = ExtResource("1_q1uwv")
+
+[node name="Panel" type="Panel" parent="."]
+offset_right = 219.0
+offset_bottom = 191.0
+
+[node name="BTN_CREAR_SALA" type="Button" parent="Panel"]
+layout_mode = 0
+offset_left = 56.0
+offset_top = 88.0
+offset_right = 157.0
+offset_bottom = 119.0
+text = "CREAR SALA
+"
+
+[node name="BTN_VOLVER" type="Button" parent="Panel"]
+layout_mode = 0
+offset_left = 72.0
+offset_top = 136.0
+offset_right = 141.0
+offset_bottom = 167.0
+text = "VOLVER"
+
+[node name="TXT_SALA" type="TextEdit" parent="Panel"]
+layout_mode = 0
+offset_left = 45.0
+offset_top = 29.0
+offset_right = 175.0
+offset_bottom = 73.0
+placeholder_text = "ESCRIBE AQUI..."

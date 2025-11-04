@@ -1,0 +1,27 @@
+[gd_scene load_steps=2 format=3 uid="uid://bgbmm001nwnjv"]
+
+[ext_resource type="Script" uid="uid://c0vjw6x2x80ey" path="res://SCRIPT/MAIN_MENU.gd" id="1_u6qdw"]
+
+[node name="Node2D" type="Node2D"]
+script = ExtResource("1_u6qdw")
+
+[node name="Panel" type="Panel" parent="."]
+offset_right = 194.0
+offset_bottom = 183.0
+
+[node name="BTN_CREAR" type="Button" parent="Panel"]
+layout_mode = 0
+offset_left = 61.0
+offset_top = 46.0
+offset_right = 128.0
+offset_bottom = 77.0
+text = "CREAR"
+
+[node name="BTN_UNIRSE" type="Button" parent="Panel"]
+layout_mode = 0
+offset_left = 66.0
+offset_top = 105.0
+offset_right = 132.0
+offset_bottom = 136.0
+text = "UNIRSE
+"
