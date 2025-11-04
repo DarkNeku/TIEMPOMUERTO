@@ -47,4 +47,6 @@ func _on_collectible_collected():
 	score += 10
 	ui.update_score(score)
 	# Añadir tiempo bonus
-	game_timer.start(game_timer.time_left + 2.0)
+	var new_time = game_timer.time_left + 2.0
+	game_timer.wait_time = new_time
+	game_timer.start()

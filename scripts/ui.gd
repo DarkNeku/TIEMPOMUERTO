@@ -24,7 +24,7 @@ func show_game_over(final_score: int):
 	game_over_panel.visible = true
 
 func _input(event):
-	if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and event.keycode == KEY_R):
+	if event.is_action_pressed("restart") or event.is_action_pressed("ui_accept"):
 		if game_over_panel.visible:
 			get_tree().paused = false
 			get_tree().reload_current_scene()
