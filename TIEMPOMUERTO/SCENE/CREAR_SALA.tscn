@@ -30,9 +30,18 @@ text = "VOLVER"
 
 [node name="TXT_SALA" type="TextEdit" parent="Panel"]
 layout_mode = 0
-offset_left = 539.0
-offset_top = 228.0
-offset_right = 1046.0
-offset_bottom = 289.0
-theme_override_font_sizes/font_size = 41
-placeholder_text = "ESCRIBE AQUI..."
+offset_left = 511.0
+offset_top = 288.0
+offset_right = 1018.0
+offset_bottom = 349.0
+theme_override_font_sizes/font_size = 31
+placeholder_text = "NOMBRE DE LA SALA"
+
+[node name="TXT_NOMBRE" type="TextEdit" parent="Panel"]
+layout_mode = 0
+offset_left = 373.0
+offset_top = 86.0
+offset_right = 1118.0
+offset_bottom = 163.0
+theme_override_font_sizes/font_size = 35
+placeholder_text = "ESCRIBE TU NOMBRE SE USUARIO AQUI"

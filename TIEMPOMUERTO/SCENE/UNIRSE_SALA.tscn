@@ -11,26 +11,35 @@ offset_bottom = 720.0
 
 [node name="BTN_UNIRSE_SALA" type="Button" parent="Panel"]
 layout_mode = 0
-offset_left = 415.0
-offset_top = 261.0
-offset_right = 853.0
-offset_bottom = 352.0
+offset_left = 411.0
+offset_top = 432.0
+offset_right = 849.0
+offset_bottom = 523.0
 theme_override_font_sizes/font_size = 60
 text = "UNIRSE A SALA"
 
 [node name="BTN_VOLVER" type="Button" parent="Panel"]
 layout_mode = 0
-offset_left = 528.0
-offset_top = 385.0
-offset_right = 762.0
-offset_bottom = 476.0
+offset_left = 507.0
+offset_top = 548.0
+offset_right = 741.0
+offset_bottom = 639.0
 theme_override_font_sizes/font_size = 60
 text = "VOLVER
 "
 
 [node name="LISTA_SALA" type="ItemList" parent="Panel"]
 layout_mode = 0
-offset_left = 339.0
-offset_top = 65.0
-offset_right = 962.0
-offset_bottom = 247.0
+offset_left = 322.0
+offset_top = 224.0
+offset_right = 945.0
+offset_bottom = 406.0
+
+[node name="TXT_NOMBRE" type="TextEdit" parent="Panel"]
+layout_mode = 0
+offset_left = 347.0
+offset_top = 68.0
+offset_right = 919.0
+offset_bottom = 170.0
+theme_override_font_sizes/font_size = 30
+placeholder_text = "ESCRIBE EL NOMBRE AQUI"
