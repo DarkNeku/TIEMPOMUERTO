@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CopilotDiffPersistence">
+    <option name="pendingDiffs">
+      <map>
+        <entry key="$PROJECT_DIR$/TIEMPOMUERTO/SCRIPT/CREAR_SALA.gd">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/TIEMPOMUERTO/SCRIPT/CREAR_SALA.gd" />
+              <option name="originalContent" value="extends Node2D&#10;" />
+              <option name="updatedContent" value="extends Node2D&#10;&#10;func _ready():&#10;&#9;$Panel/BTN_VOLVER.connect(&quot;pressed&quot;, Callable(self, &quot;on_btn_volver_pressed&quot;))&#10;&#10;func on_btn_volver_pressed():&#10;&#9;get_tree().change_scene_to_file(&quot;res://SCENE/MAIN_MENU.tscn&quot;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/TIEMPOMUERTO/SCRIPT/MAIN_MENU.gd">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/TIEMPOMUERTO/SCRIPT/MAIN_MENU.gd" />
+              <option name="originalContent" value="extends Node2D&#10;&#10;" />
+              <option name="updatedContent" value="extends Node2D&#10;&#10;func _ready():&#10;    $Panel/BTN_CREAR.connect(&quot;pressed&quot;, Callable(self, &quot;on_btn_crear_pressed&quot;))&#10;    $Panel/BTN_UNIRSE.connect(&quot;pressed&quot;, Callable(self, &quot;on_btn_unirse_pressed&quot;))&#10;&#10;func on_btn_crear_pressed():&#10;    get_tree().change_scene_to_file(&quot;res://SCENE/CREAR_SALA.tscn&quot;)&#10;&#10;func on_btn_unirse_pressed():&#10;    get_tree().change_scene_to_file(&quot;res://SCENE/UNIRSE_SALA.tscn&quot;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+        <entry key="$PROJECT_DIR$/TIEMPOMUERTO/SCRIPT/UNIRSE_SALA.gd">
+          <value>
+            <PendingDiffInfo>
+              <option name="filePath" value="$PROJECT_DIR$/TIEMPOMUERTO/SCRIPT/UNIRSE_SALA.gd" />
+              <option name="originalContent" value="extends Node2D&#10;" />
+              <option name="updatedContent" value="extends Node2D&#10;&#10;func _ready():&#10;    $Panel/BTN_VOLVER.connect(&quot;pressed&quot;, Callable(self, &quot;on_btn_volver_pressed&quot;))&#10;&#10;func on_btn_volver_pressed():&#10;    get_tree().change_scene_to_file(&quot;res://SCENE/MAIN_MENU.tscn&quot;)" />
+            </PendingDiffInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>
