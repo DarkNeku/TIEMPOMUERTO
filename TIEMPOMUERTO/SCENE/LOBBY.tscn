@@ -6,28 +6,30 @@
 script = ExtResource("1_lsdnp")
 
 [node name="Panel" type="Panel" parent="."]
-offset_right = 255.0
-offset_bottom = 236.0
+offset_right = 1280.0
+offset_bottom = 720.0
 
 [node name="BTN_VOLVER" type="Button" parent="Panel"]
 layout_mode = 0
-offset_left = 89.0
-offset_top = 162.0
-offset_right = 158.0
-offset_bottom = 193.0
+offset_left = 546.0
+offset_top = 423.0
+offset_right = 780.0
+offset_bottom = 514.0
+theme_override_font_sizes/font_size = 60
 text = "VOLVER"
 
-[node name="RichTextLabel" type="RichTextLabel" parent="Panel"]
+[node name="LISTA_JUGADORES" type="ItemList" parent="Panel"]
 layout_mode = 0
-offset_left = 52.0
-offset_top = 25.0
-offset_right = 209.0
-offset_bottom = 144.0
+offset_left = 398.0
+offset_top = 29.0
+offset_right = 923.0
+offset_bottom = 370.0
 
 [node name="BTN_LISTO" type="Button" parent="Panel"]
 layout_mode = 0
-offset_left = 97.0
-offset_top = 195.0
-offset_right = 150.0
-offset_bottom = 226.0
+offset_left = 575.0
+offset_top = 551.0
+offset_right = 748.0
+offset_bottom = 642.0
+theme_override_font_sizes/font_size = 60
 text = "LISTO"
