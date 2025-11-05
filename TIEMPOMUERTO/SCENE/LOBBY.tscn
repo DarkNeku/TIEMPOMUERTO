@@ -1,6 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://dwgfscnfyublk"]
+[gd_scene load_steps=3 format=3 uid="uid://dwgfscnfyublk"]
 
 [ext_resource type="Script" uid="uid://dqongl7283eju" path="res://SCRIPT/LOBBY.gd" id="1_lsdnp"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_lsdnp"]
+font_size = 46
 
 [node name="Node2D" type="Node2D"]
 script = ExtResource("1_lsdnp")
@@ -11,25 +14,34 @@ offset_bottom = 720.0
 
 [node name="BTN_VOLVER" type="Button" parent="Panel"]
 layout_mode = 0
-offset_left = 546.0
-offset_top = 423.0
-offset_right = 780.0
-offset_bottom = 514.0
+offset_left = 511.0
+offset_top = 464.0
+offset_right = 745.0
+offset_bottom = 555.0
 theme_override_font_sizes/font_size = 60
 text = "VOLVER"
 
 [node name="LISTA_JUGADORES" type="ItemList" parent="Panel"]
 layout_mode = 0
 offset_left = 398.0
-offset_top = 29.0
+offset_top = 126.0
 offset_right = 923.0
 offset_bottom = 370.0
 
 [node name="BTN_LISTO" type="Button" parent="Panel"]
 layout_mode = 0
-offset_left = 575.0
-offset_top = 551.0
-offset_right = 748.0
-offset_bottom = 642.0
+offset_left = 544.0
+offset_top = 582.0
+offset_right = 717.0
+offset_bottom = 673.0
 theme_override_font_sizes/font_size = 60
 text = "LISTO"
+
+[node name="NOMBRE_SALA" type="Label" parent="Panel"]
+layout_mode = 0
+offset_left = 411.0
+offset_top = 38.0
+offset_right = 923.0
+offset_bottom = 102.0
+label_settings = SubResource("LabelSettings_lsdnp")
+horizontal_alignment = 1
