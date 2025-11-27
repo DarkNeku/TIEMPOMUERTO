@@ -1,0 +1,9 @@
+<svg height="128" width="128" xmlns="http://www.w3.org/2000/svg">
+  <rect fill="#1e1e2e" height="128" width="128"/>
+  <circle cx="64" cy="64" r="50" fill="#ff6b6b"/>
+  <circle cx="64" cy="64" r="40" fill="#1e1e2e"/>
+  <circle cx="64" cy="64" r="5" fill="#ff6b6b"/>
+  <rect x="61" y="24" width="6" height="40" fill="#ff6b6b"/>
+  <rect x="61" y="24" width="25" height="6" fill="#ff6b6b"/>
+  <text x="64" y="110" font-family="Arial, sans-serif" font-size="16" fill="#ff6b6b" text-anchor="middle" font-weight="bold">TIEMPO</text>
+</svg>
