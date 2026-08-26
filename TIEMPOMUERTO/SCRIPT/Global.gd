@@ -3,4 +3,6 @@ extends Node
 var nombre_sala: String = ""
 var jugadores: Array = []
 
-# Puedes agregar más variables globales aquí para el juego
+# Variables para la conexión
+var ip_host: String = ""
+var puerto: int = 12345
