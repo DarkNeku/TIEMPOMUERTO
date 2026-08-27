@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3 uid="uid://c6wopj2ffjxrn"]
+
+[ext_resource type="Script" uid="uid://c1v83rybw07pb" path="res://SCRIPT/PC.gd" id="1_ayikv"]
+
+[node name="Node2D" type="Node2D"]
+script = ExtResource("1_ayikv")
+
+[node name="Panel" type="Panel" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1280.0
+offset_bottom = 720.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PANEL_MAPA" type="Panel" parent="Panel"]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -550.0
+offset_top = -300.0
+offset_right = 550.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MAPA_CONTENIDO" type="Node2D" parent="Panel/PANEL_MAPA"]
+
+[node name="BTN_OBJETO" type="Button" parent="Panel"]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -31.0
+offset_right = 67.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 100
+text = "OBJETO"
+
+[node name="BTN_SALAS" type="Button" parent="Panel"]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -8.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 100
+text = "SALAS"
+
+[node name="LBL_JUGADOR" type="Label" parent="Panel"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_font_sizes/font_size = 40
+text = "JUGADOR       "
+
+[node name="LBL_TIEMPO" type="Label" parent="Panel"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -261.0
+offset_bottom = 55.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 40
+text = "TIEMPO:                   "
