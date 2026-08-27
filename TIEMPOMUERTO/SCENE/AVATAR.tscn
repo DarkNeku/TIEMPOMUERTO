@@ -7,4 +7,4 @@ scale = Vector2(0.8, 0.8)
 
 [node name="AVATAR_ANIMACION" type="AnimatedSprite2D" parent="."]
 sprite_frames = ExtResource("1_ppnif")
-animation = &"AVATAR_GRIS"
+animation = &"AVATAR_VERDE"

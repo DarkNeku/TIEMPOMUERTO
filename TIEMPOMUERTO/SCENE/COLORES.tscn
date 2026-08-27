@@ -1,6 +1,10 @@
-[gd_scene load_steps=18 format=3 uid="uid://2kbnpt8cpp34"]
+[gd_scene load_steps=27 format=3 uid="uid://2kbnpt8cpp34"]
 
 [ext_resource type="PackedScene" uid="uid://dbyu80rmrqmku" path="res://SCENE/AVATAR.tscn" id="1_3roei"]
+[ext_resource type="Script" uid="uid://cdje2mxsj346j" path="res://SCRIPT/COLORES.gd" id="1_qgql2"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xemen"]
+bg_color = Color(0.996078, 0, 0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6kyjy"]
 bg_color = Color(0.996078, 0, 0, 1)
@@ -8,11 +12,17 @@ bg_color = Color(0.996078, 0, 0, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3roei"]
 bg_color = Color(0.996078, 0, 0, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mbx6q"]
+bg_color = Color(0, 0, 0.996078, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_kv5nl"]
 bg_color = Color(0, 0, 0.996078, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qgql2"]
 bg_color = Color(0, 0, 0.996078, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_27og6"]
+bg_color = Color(1, 1, 0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nx062"]
 bg_color = Color(1, 1, 0, 1)
@@ -20,11 +30,17 @@ bg_color = Color(1, 1, 0, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ham6d"]
 bg_color = Color(1, 1, 0, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_c3i6n"]
+bg_color = Color(0.498039, 0, 1, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jeu7y"]
 bg_color = Color(0.498039, 0, 1, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yhfho"]
 bg_color = Color(0.498039, 0, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_m7wkq"]
+bg_color = Color(0.254902, 0.172549, 0.0980392, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uyali"]
 bg_color = Color(0.254902, 0.172549, 0.0980392, 1)
@@ -32,17 +48,26 @@ bg_color = Color(0.254902, 0.172549, 0.0980392, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_2akis"]
 bg_color = Color(0.254902, 0.172549, 0.0980392, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_n2ydw"]
+bg_color = Color(1, 0.0235294, 0.996078, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mcax3"]
 bg_color = Color(1, 0.0235294, 0.996078, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_r3v61"]
 bg_color = Color(1, 0.0235294, 0.996078, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yrqxq"]
+bg_color = Color(0, 0.439216, 0, 1)
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7yrl7"]
 bg_color = Color(0, 0.439216, 0, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7fet6"]
 bg_color = Color(0, 0.439216, 0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tjn28"]
+bg_color = Color(0.396078, 0.396078, 0.396078, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yydek"]
 bg_color = Color(0.396078, 0.396078, 0.396078, 1)
@@ -51,6 +76,7 @@ bg_color = Color(0.396078, 0.396078, 0.396078, 1)
 bg_color = Color(0.396078, 0.396078, 0.396078, 1)
 
 [node name="Node2D" type="Node2D"]
+script = ExtResource("1_qgql2")
 
 [node name="Panel" type="Panel" parent="."]
 custom_minimum_size = Vector2(3.87, 0.89)
@@ -73,8 +99,10 @@ size_flags_vertical = 3
 [node name="BTN_ROJO" type="Button" parent="Panel/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/disabled = SubResource("StyleBoxFlat_xemen")
 theme_override_styles/hover = SubResource("StyleBoxFlat_6kyjy")
 theme_override_styles/normal = SubResource("StyleBoxFlat_3roei")
+icon_alignment = 1
 
 [node name="Control" type="Control" parent="Panel/VBoxContainer/HBoxContainer"]
 custom_minimum_size = Vector2(20, 0)
@@ -83,6 +111,7 @@ layout_mode = 2
 [node name="BTN_AZUL" type="Button" parent="Panel/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/disabled = SubResource("StyleBoxFlat_mbx6q")
 theme_override_styles/hover = SubResource("StyleBoxFlat_kv5nl")
 theme_override_styles/normal = SubResource("StyleBoxFlat_qgql2")
 
@@ -93,6 +122,7 @@ layout_mode = 2
 [node name="BTN_AMARILLO" type="Button" parent="Panel/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/disabled = SubResource("StyleBoxFlat_27og6")
 theme_override_styles/hover = SubResource("StyleBoxFlat_nx062")
 theme_override_styles/normal = SubResource("StyleBoxFlat_ham6d")
 
@@ -103,6 +133,7 @@ layout_mode = 2
 [node name="BTN_MORADO" type="Button" parent="Panel/VBoxContainer/HBoxContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/disabled = SubResource("StyleBoxFlat_c3i6n")
 theme_override_styles/hover = SubResource("StyleBoxFlat_jeu7y")
 theme_override_styles/normal = SubResource("StyleBoxFlat_yhfho")
 
@@ -117,6 +148,7 @@ size_flags_vertical = 3
 [node name="BTN_CAFE" type="Button" parent="Panel/VBoxContainer/HBoxContainer2"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/disabled = SubResource("StyleBoxFlat_m7wkq")
 theme_override_styles/hover = SubResource("StyleBoxFlat_uyali")
 theme_override_styles/normal = SubResource("StyleBoxFlat_2akis")
 
@@ -127,6 +159,7 @@ layout_mode = 2
 [node name="BTN_ROSADO" type="Button" parent="Panel/VBoxContainer/HBoxContainer2"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/disabled = SubResource("StyleBoxFlat_n2ydw")
 theme_override_styles/hover = SubResource("StyleBoxFlat_mcax3")
 theme_override_styles/normal = SubResource("StyleBoxFlat_r3v61")
 
@@ -137,6 +170,7 @@ layout_mode = 2
 [node name="BTN_VERDE" type="Button" parent="Panel/VBoxContainer/HBoxContainer2"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/disabled = SubResource("StyleBoxFlat_yrqxq")
 theme_override_styles/hover = SubResource("StyleBoxFlat_7yrl7")
 theme_override_styles/normal = SubResource("StyleBoxFlat_7fet6")
 
@@ -147,6 +181,7 @@ layout_mode = 2
 [node name="BTN_GRIS" type="Button" parent="Panel/VBoxContainer/HBoxContainer2"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/disabled = SubResource("StyleBoxFlat_tjn28")
 theme_override_styles/hover = SubResource("StyleBoxFlat_yydek")
 theme_override_styles/normal = SubResource("StyleBoxFlat_15jde")
 

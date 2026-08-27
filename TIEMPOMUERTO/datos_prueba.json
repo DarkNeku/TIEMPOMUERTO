@@ -1,37 +1,37 @@
 {
-    "sala": "SALA 1",
-    "ip_host": "192.168.1.102",
-    "puerto": 12345,
-    "jugadores": [
-        {
-            "nombre": "JOSE",
-            "color": "",
-            "avatar": "",
-            "conectado": false
-        },
-        {
-            "nombre": "JENNY",
-            "color": "",
-            "avatar": "",
-            "conectado": false
-        },
-        {
-            "nombre": "ALE",
-            "color": "",
-            "avatar": "",
-            "conectado": false
-        },
-        {
-            "nombre": "FRAN",
-            "color": "",
-            "avatar": "",
-            "conectado": false
-        },
-        {
-            "nombre": "CRIS",
-            "color": "",
-            "avatar": "",
-            "conectado": false
-        }
-    ]
+	"sala": "SALA 1",
+	"ip_host": "192.168.1.102",
+	"puerto": 12345,
+	"jugadores": [
+		{
+			"nombre": "JOSE",
+			"color": "VERDE",
+			"avatar": "",
+			"conectado": false
+		},
+		{
+			"nombre": "JENNY",
+			"color": "AZUL",
+			"avatar": "",
+			"conectado": false
+		},
+		{
+			"nombre": "ALE",
+			"color": "AMARILLO",
+			"avatar": "",
+			"conectado": false
+		},
+		{
+			"nombre": "FRAN",
+			"color": "ROJO",
+			"avatar": "",
+			"conectado": false
+		},
+		{
+			"nombre": "CRIS",
+			"color": "GRIS",
+			"avatar": "",
+			"conectado": false
+		}
+	]
 }
