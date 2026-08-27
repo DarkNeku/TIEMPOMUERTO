@@ -1,0 +1,37 @@
+{
+    "sala": "SALA 1",
+    "ip_host": "192.168.1.102",
+    "puerto": 12345,
+    "jugadores": [
+        {
+            "nombre": "JOSE",
+            "color": "",
+            "avatar": "",
+            "conectado": false
+        },
+        {
+            "nombre": "JENNY",
+            "color": "",
+            "avatar": "",
+            "conectado": false
+        },
+        {
+            "nombre": "ALE",
+            "color": "",
+            "avatar": "",
+            "conectado": false
+        },
+        {
+            "nombre": "FRAN",
+            "color": "",
+            "avatar": "",
+            "conectado": false
+        },
+        {
+            "nombre": "CRIS",
+            "color": "",
+            "avatar": "",
+            "conectado": false
+        }
+    ]
+}

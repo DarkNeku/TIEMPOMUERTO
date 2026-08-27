@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://dbyu80rmrqmku"]
+
+[ext_resource type="SpriteFrames" uid="uid://dspjykmhjkp4a" path="res://ASSET/Avatars/AVATAR_AMARILLO.tres" id="1_ppnif"]
+
+[node name="AVATAR" type="CharacterBody2D"]
+scale = Vector2(0.8, 0.8)
+
+[node name="AVATAR_ANIMACION" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("1_ppnif")
+animation = &"AVATAR_GRIS"
