@@ -1,0 +1,122 @@
+[gd_scene format=3 uid="uid://blmfqyp8fwuvg"]
+
+[ext_resource type="Texture2D" uid="uid://dpvla4ejyrqv5" path="res://ASSET/PUERTAS Y OTROS/PUERTA ABAJO.png" id="1_o6e1t"]
+[ext_resource type="Texture2D" uid="uid://uvxhtpkmf7cb" path="res://ASSET/PUERTAS Y OTROS/PUERTA ARRIBA.png" id="2_d8ihw"]
+[ext_resource type="Texture2D" uid="uid://ev4joetrpbgj" path="res://ASSET/PUERTAS Y OTROS/PUERTA DERECHA.png" id="3_8pfwe"]
+[ext_resource type="Texture2D" uid="uid://cyjlxwqdengvd" path="res://ASSET/PUERTAS Y OTROS/PUERTA IZQUIERDA.png" id="4_33i2y"]
+[ext_resource type="Texture2D" uid="uid://c3xub3nmneq4c" path="res://ASSET/PUERTAS Y OTROS/ABIERTA ABAJO.png" id="5_ys2hm"]
+[ext_resource type="Texture2D" uid="uid://cviu0eh8bsuf" path="res://ASSET/PUERTAS Y OTROS/ABIERTA ARRIBA.png" id="6_v5xyf"]
+[ext_resource type="Texture2D" uid="uid://bid2xu3lkof5o" path="res://ASSET/PUERTAS Y OTROS/ABIERTA DERECHA.png" id="7_aq42b"]
+[ext_resource type="Texture2D" uid="uid://cxkyolyik24ib" path="res://ASSET/PUERTAS Y OTROS/ABIERTA IZQUIERDA.png" id="8_eblm4"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qovcs"]
+atlas = ExtResource("1_o6e1t")
+region = Rect2(0, 0, 260, 182)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sr2tp"]
+atlas = ExtResource("2_d8ihw")
+region = Rect2(0, 0, 260, 182)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pmhtc"]
+atlas = ExtResource("3_8pfwe")
+region = Rect2(0, 0, 144, 236)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2gh8b"]
+atlas = ExtResource("4_33i2y")
+region = Rect2(0, 0, 144, 236)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_sqbov"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qovcs")
+}],
+"loop": 1,
+"name": &"PUERTA_ABA_CERRADA",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sr2tp")
+}],
+"loop": 1,
+"name": &"PUERTA_ARR_CERRADA",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pmhtc")
+}],
+"loop": 1,
+"name": &"PUERTA_DER_CERRADA",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2gh8b")
+}],
+"loop": 1,
+"name": &"PUERTA_IZQ_CERRADA",
+"speed": 5.0
+}]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ahtsp"]
+atlas = ExtResource("5_ys2hm")
+region = Rect2(0, 0, 302, 296)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_g3dgt"]
+atlas = ExtResource("6_v5xyf")
+region = Rect2(0, 0, 289, 297)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rypl4"]
+atlas = ExtResource("7_aq42b")
+region = Rect2(0, 0, 291, 354)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_inl4i"]
+atlas = ExtResource("8_eblm4")
+region = Rect2(0, 0, 300, 353)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_7riys"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ahtsp")
+}],
+"loop": 1,
+"name": &"PUERTA_ABA_ABIERTA",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_g3dgt")
+}],
+"loop": 1,
+"name": &"PUERTA_ARR_ABIERTA",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_rypl4")
+}],
+"loop": 1,
+"name": &"PUERTA_DER_ABIERTA",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_inl4i")
+}],
+"loop": 1,
+"name": &"PUERTA_IZQ_ABIERTA",
+"speed": 5.0
+}]
+
+[node name="PUERTAS" type="CharacterBody2D" unique_id=517553788]
+
+[node name="PUERTAS_CERRADAS" type="AnimatedSprite2D" parent="." unique_id=1743734021]
+sprite_frames = SubResource("SpriteFrames_sqbov")
+animation = &"PUERTA_DER_CERRADA"
+
+[node name="PUERTAS_ABIERTAS" type="AnimatedSprite2D" parent="." unique_id=173016252]
+sprite_frames = SubResource("SpriteFrames_7riys")
+animation = &"PUERTA_ABA_ABIERTA"

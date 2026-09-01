@@ -1,4 +1,4 @@
-[gd_resource type="SpriteFrames" load_steps=51 format=3 uid="uid://dspjykmhjkp4a"]
+[gd_resource type="SpriteFrames" format=3 uid="uid://dspjykmhjkp4a"]
 
 [ext_resource type="Texture2D" uid="uid://qwg3e05o23lm" path="res://ASSET/Avatars/AMARILLO 1.png" id="1_ctmns"]
 [ext_resource type="Texture2D" uid="uid://dkoxfkb4b4mup" path="res://ASSET/Avatars/AMARILLO 4.png" id="2_n55yw"]
@@ -132,7 +132,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_vn5ao")
 }],
-"loop": false,
+"loop": 0,
 "name": &"AVATAR_AMARILLO",
 "speed": 10.0
 }, {
@@ -161,7 +161,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("8_60k4m")
 }],
-"loop": false,
+"loop": 0,
 "name": &"AVATAR_AZUL",
 "speed": 10.0
 }, {
@@ -190,7 +190,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("12_tggt1")
 }],
-"loop": false,
+"loop": 0,
 "name": &"AVATAR_CAFE",
 "speed": 10.0
 }, {
@@ -219,7 +219,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("16_jxbaa")
 }],
-"loop": false,
+"loop": 0,
 "name": &"AVATAR_GRIS",
 "speed": 10.0
 }, {
@@ -248,7 +248,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("20_j0xur")
 }],
-"loop": false,
+"loop": 0,
 "name": &"AVATAR_MORADO",
 "speed": 10.0
 }, {
@@ -277,7 +277,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_qpcaa")
 }],
-"loop": false,
+"loop": 0,
 "name": &"AVATAR_ROJO",
 "speed": 10.0
 }, {
@@ -306,7 +306,7 @@ animations = [{
 "duration": 1.0,
 "texture": ExtResource("28_8nyue")
 }],
-"loop": false,
+"loop": 0,
 "name": &"AVATAR_ROSADO",
 "speed": 10.0
 }, {
@@ -335,7 +335,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_s6wib")
 }],
-"loop": false,
+"loop": 0,
 "name": &"AVATAR_VERDE",
 "speed": 10.0
 }]
