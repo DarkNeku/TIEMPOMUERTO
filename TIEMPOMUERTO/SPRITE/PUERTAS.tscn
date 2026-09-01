@@ -115,8 +115,9 @@ animations = [{
 
 [node name="PUERTAS_CERRADAS" type="AnimatedSprite2D" parent="." unique_id=1743734021]
 sprite_frames = SubResource("SpriteFrames_sqbov")
-animation = &"PUERTA_DER_CERRADA"
+animation = &"PUERTA_IZQ_CERRADA"
 
 [node name="PUERTAS_ABIERTAS" type="AnimatedSprite2D" parent="." unique_id=173016252]
+scale = Vector2(0.88, 0.88)
 sprite_frames = SubResource("SpriteFrames_7riys")
 animation = &"PUERTA_ABA_ABIERTA"
