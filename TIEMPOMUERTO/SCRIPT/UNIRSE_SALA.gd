@@ -2,10 +2,11 @@ extends Node2D
 
 var timer: Timer
 var conectado: bool = false
+var conectando: bool = false
 var intentos: int = 0
 var log_text: String = ""
 var log_label: Label = null
-var log_panel: ScrollContainer = null
+var log_panel: Control = null
 
 func _ready():
 	# CREAR EL PANEL DE LOG SI NO EXISTE
@@ -88,13 +89,15 @@ func crear_panel_log():
 		add_child(panel)
 		agregar_log("✅ Panel creado")
 	
-	# Crear ScrollContainer para el log
-	log_panel = ScrollContainer.new()
-	log_panel.name = "LOG_PANEL"
-	log_panel.position = Vector2(20, 350)
-	log_panel.size = Vector2(360, 200)
-	log_panel.set_h_scroll(ScrollContainer.SCROLL_MODE_DISABLED)
-	panel.add_child(log_panel)
+	# Crear ScrollContainer para el log (variable local, para que el tipo no
+	# choque con el nodo LOG_PANEL que ya trae la escena)
+	var scroller := ScrollContainer.new()
+	scroller.name = "LOG_PANEL"
+	scroller.position = Vector2(20, 350)
+	scroller.size = Vector2(360, 200)
+	scroller.set_h_scroll(ScrollContainer.SCROLL_MODE_DISABLED)
+	panel.add_child(scroller)
+	log_panel = scroller
 	agregar_log("✅ LOG_PANEL creado")
 	
 	# Crear Label dentro del ScrollContainer
@@ -103,7 +106,7 @@ func crear_panel_log():
 	log_label.autowrap = true
 	log_label.size = Vector2(340, 0)
 	log_label.text = "=== INICIANDO LOG ===\n"
-	log_panel.add_child(log_label)
+	scroller.add_child(log_label)
 	agregar_log("✅ LOG_LABEL creado")
 
 func agregar_log(mensaje: String):
@@ -127,59 +130,111 @@ func agregar_log(mensaje: String):
 	print(mensaje_completo)
 
 func conectar_al_host():
-	var ip = "192.168.1.102"
+	if conectando:
+		return
+	conectando = true
 	intentos += 1
 	
 	agregar_log("")
 	agregar_log("=== 🔌 INTENTO #" + str(intentos) + " ===")
-	agregar_log("📡 Conectando a: " + ip + ":12345")
 	
 	# Verificar que el objeto Network existe
 	if not Network:
 		agregar_log("❌ ERROR: Network no está cargado")
+		conectando = false
 		return
 	
-	agregar_log("⏳ Llamando a Network.connect_to_host()...")
+	# Puerto (por si algún día lo cambias en los datos guardados)
+	var puerto: int = 12345
+	if Global and Global.puerto > 0:
+		puerto = Global.puerto
 	
-	# ✅ CORREGIDO: Usar AWAIT porque es una coroutine
-	var resultado = await Network.connect_to_host(ip)
+	# IP que funcionó la última vez: solo es una pista extra, no la fuente principal
+	var ip_guardada: String = ""
+	if Global and Global.ip_host:
+		ip_guardada = Global.ip_host
 	
-	agregar_log("📊 Resultado: " + str(resultado))
+	# ---- 1) BUSCAR EL HOST EN LA RED LOCAL (sin IPs escritas a mano) ----
+	agregar_log("🔎 Buscando host en la red local (broadcast + barrido de subred)...")
+	var hosts: Array[String] = await Network.descubrir_host(3.0, ip_guardada)
+	agregar_log("📡 Hosts que respondieron: " + str(hosts))
 	
-	if resultado:
-		agregar_log("✅ ¡CONECTADO EXITOSAMENTE!")
-		agregar_log("🆔 Peer ID: " + str(Network.peer.get_unique_id()))
-		conectado = true
-		
-		agregar_log("⏳ Esperando 0.5s para estabilizar...")
-		await get_tree().create_timer(0.5).timeout
-		
-		agregar_log("📤 Solicitando lista de salas al host...")
-		Network.pedir_salas.rpc_id(1)
-		agregar_log("✅ Solicitud enviada")
-		
-		agregar_log("⏳ Esperando respuesta...")
-		await get_tree().create_timer(0.5).timeout
-		
-		agregar_log("📋 Mostrando salas disponibles...")
-		mostrar_salas()
+	var candidatas: Array[String] = []
+	candidatas.append_array(hosts)
+	
+	if candidatas.size() == 0 and ip_guardada.strip_edges() != "":
+		agregar_log("ℹ️ Nadie respondió al sondeo; probando la IP guardada " + ip_guardada)
+		candidatas.append(ip_guardada.strip_edges())
+	
+	if candidatas.size() == 0:
+		agregar_log("❌ NO SE ENCONTRÓ NINGÚN HOST EN LA RED")
+		_conexion_fallida()
+		return
+	
+	# ---- 2) INTENTAR CON CADA HOST ENCONTRADO ----
+	for ip in candidatas:
+		# A quien respondió al sondeo le damos más margen que a la IP guardada
+		# (esa puede estar caducada y solo hace perder segundos).
+		var margen: float = 4.0 if hosts.has(ip) else 1.5
+		if await intentar_conexion(ip, puerto, margen):
+			return
+	
+	agregar_log("❌ NO ME PUDE CONECTAR A NINGÚN HOST")
+	_conexion_fallida()
+
+func intentar_conexion(ip: String, puerto: int, margen: float = 4.0) -> bool:
+	agregar_log("📡 Probando " + ip + ":" + str(puerto) + " ...")
+	
+	if not Network.preparar_cliente(ip, puerto):
+		agregar_log("❌ No se pudo iniciar el intento con " + ip)
+		return false
+	
+	# ✅ AWAIT de verdad: espera a que la conexión se establezca o falle
+	var ok: bool = await Network.esperar_conexion(margen)
+	
+	if not ok:
+		agregar_log("❌ " + ip + " no respondió")
+		Network.desconectar()
+		return false
+	
+	agregar_log("✅ ¡CONECTADO AL HOST!")
+	agregar_log("🆔 Peer ID: " + str(Network.multiplayer.get_unique_id()))
+	conectado = true
+	conectando = false
+	
+	# Recordar la IP que sí funcionó, para la próxima vez
+	if Global and Global.data_manager:
+		Global.data_manager.actualizar_ip_host(ip)
+		Global.ip_host = ip
+	
+	agregar_log("⏳ Esperando 0.5s para estabilizar...")
+	await get_tree().create_timer(0.5).timeout
+	
+	agregar_log("📤 Solicitando lista de salas al host...")
+	Network.pedir_salas.rpc_id(1)
+	agregar_log("✅ Solicitud enviada")
+	
+	agregar_log("⏳ Esperando respuesta...")
+	await get_tree().create_timer(0.5).timeout
+	
+	agregar_log("📋 Mostrando salas disponibles...")
+	mostrar_salas()
+	return true
+
+func _conexion_fallida():
+	agregar_log("🔍 Posibles causas:")
+	agregar_log("  1. 🔥 Firewall del host bloqueando UDP 12344 / 12345")
+	agregar_log("  2. 💻 El otro equipo no está en CREAR SALA")
+	agregar_log("  3. 🌐 No están en la misma red wifi")
+	agregar_log("  4. 📵 El celular está usando datos móviles")
+	
+	if intentos <= 3:
+		agregar_log("⏳ Reintentando en 2 segundos...")
 	else:
-		agregar_log("❌ FALLO EN CONEXIÓN")
-		agregar_log("🔍 Posibles causas:")
-		agregar_log("  1. 🔥 Firewall bloqueando el puerto 12345")
-		agregar_log("  2. 💻 El host no está ejecutándose")
-		agregar_log("  3. 🌐 No están en la misma red")
-		agregar_log("  4. 📡 IP incorrecta (debe ser 192.168.1.102)")
-		agregar_log("  5. 🔒 Faltan permisos INTERNET en Android")
-		
-		if intentos < 5:
-			agregar_log("⏳ Reintentando en 2 segundos...")
-		else:
-			agregar_log("⚠️ No se pudo conectar después de 5 intentos")
-			agregar_log("🔧 SOLUCIONES:")
-			agregar_log("  • Desactiva firewall en PC")
-			agregar_log("  • Exporta con permisos INTERNET")
-			agregar_log("  • Verifica la IP del PC con ipconfig")
+		agregar_log("🔧 SIGO BUSCANDO (reintento cada 2s). Ábreme CREAR SALA en el")
+		agregar_log("🔧 otro equipo y revisa su firewall: UDP 12344 y 12345.")
+	
+	conectando = false
 
 func _on_salas_actualizadas():
 	agregar_log("")
@@ -188,15 +243,27 @@ func _on_salas_actualizadas():
 	mostrar_salas()
 
 func on_timer_timeout():
+	# Si ya hay un intento en curso, no lo solapes (el descubrimiento tarda)
+	if conectando:
+		return
+	
+	if conectado and not Network.esta_conectado():
+		# El host se fue: dejar de pedir salas y volver a buscar solo.
+		# Sin esto, el log se llena de errores de RPC y la lista se congela.
+		agregar_log("")
+		agregar_log("⚠️ SE PERDIÓ LA CONEXIÓN CON EL HOST. Volviendo a buscar...")
+		conectado = false
+		Network.salas = {}
+		Network.desconectar()
+		mostrar_salas()
+	
 	if conectado:
-		agregar_log("🔄 Timer: Solicitando salas...")
 		Network.pedir_salas.rpc_id(1)
 		await get_tree().create_timer(0.3).timeout
 		mostrar_salas()
 	else:
-		if intentos < 5:
-			agregar_log("⏳ Timer: No conectado, reintentando...")
-			conectar_al_host()
+		agregar_log("⏳ Timer: sin host todavía, buscando de nuevo...")
+		conectar_al_host()
 
 func mostrar_salas():
 	# Verificar que existe LISTA_SALA

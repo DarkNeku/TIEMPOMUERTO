@@ -35,7 +35,9 @@ func guardar_datos() -> bool:
 func crear_datos_por_defecto():
 	datos_actuales = {
 		"sala": "SALA 1",
-		"ip_host": "192.168.1.102",
+		# "" = todavía no conocemos el host: se busca solo en la red local.
+		# No escribir IPs a mano: cambian según el router y rompen la conexión.
+		"ip_host": "",
 		"puerto": 12345,
 		"jugadores": [
 			{"nombre": "JOSE", "color": "", "avatar": "", "conectado": false},
@@ -50,7 +52,14 @@ func get_sala() -> String:
 	return datos_actuales.get("sala", "SALA 1")
 
 func get_ip() -> String:
-	return datos_actuales.get("ip_host", "192.168.1.102")
+	# "" = el host todavía no se conoce; se busca por la red local.
+	return datos_actuales.get("ip_host", "")
+
+## Guarda la IP del host que sí funcionó, como pista para la próxima vez.
+func actualizar_ip_host(nueva_ip: String) -> void:
+	datos_actuales["ip_host"] = nueva_ip
+	guardar_datos()
+	print("✅ IP del host guardada: " + nueva_ip)
 
 func get_puerto() -> int:
 	return datos_actuales.get("puerto", 12345)
