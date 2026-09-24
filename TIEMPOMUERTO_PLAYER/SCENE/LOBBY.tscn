@@ -1,47 +1,58 @@
-[gd_scene load_steps=3 format=3 uid="uid://dwgfscnfyublk"]
+[gd_scene format=3 uid="uid://dwgfscnfyublk"]
 
 [ext_resource type="Script" uid="uid://dqongl7283eju" path="res://SCRIPT/LOBBY.gd" id="1_lsdnp"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_lsdnp"]
 font_size = 46
 
-[node name="Node2D" type="Node2D"]
+[node name="Control" type="Control" unique_id=420253555]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_lsdnp")
 
-[node name="Panel" type="Panel" parent="."]
-offset_right = 1280.0
-offset_bottom = 720.0
+[node name="Panel" type="Panel" parent="." unique_id=1500429951]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="BTN_VOLVER" type="Button" parent="Panel"]
+[node name="BTN_VOLVER" type="Button" parent="Panel" unique_id=1050245721]
 layout_mode = 0
-offset_left = 511.0
-offset_top = 464.0
-offset_right = 745.0
-offset_bottom = 555.0
+offset_left = 235.0
+offset_top = 510.0
+offset_right = 469.0
+offset_bottom = 601.0
 theme_override_font_sizes/font_size = 60
 text = "VOLVER"
 
-[node name="LISTA_JUGADORES" type="ItemList" parent="Panel"]
+[node name="LISTA_JUGADORES" type="ItemList" parent="Panel" unique_id=1790324179]
 layout_mode = 0
-offset_left = 398.0
-offset_top = 126.0
-offset_right = 923.0
-offset_bottom = 370.0
+offset_left = 95.0
+offset_top = 154.0
+offset_right = 620.0
+offset_bottom = 398.0
+theme_override_font_sizes/font_size = 30
 
-[node name="BTN_LISTO" type="Button" parent="Panel"]
+[node name="BTN_LISTO" type="Button" parent="Panel" unique_id=669172008]
 layout_mode = 0
-offset_left = 544.0
-offset_top = 582.0
-offset_right = 717.0
-offset_bottom = 673.0
+offset_left = 268.0
+offset_top = 715.0
+offset_right = 441.0
+offset_bottom = 806.0
 theme_override_font_sizes/font_size = 60
 text = "LISTO"
 
-[node name="NOMBRE_SALA" type="Label" parent="Panel"]
+[node name="NOMBRE_SALA" type="Label" parent="Panel" unique_id=485902699]
 layout_mode = 0
-offset_left = 411.0
-offset_top = 38.0
-offset_right = 923.0
-offset_bottom = 102.0
+offset_left = 94.0
+offset_top = 43.0
+offset_right = 606.0
+offset_bottom = 107.0
 label_settings = SubResource("LabelSettings_lsdnp")
 horizontal_alignment = 1

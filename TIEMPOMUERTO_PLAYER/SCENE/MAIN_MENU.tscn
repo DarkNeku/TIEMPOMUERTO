@@ -2,17 +2,29 @@
 
 [ext_resource type="Script" uid="uid://c0vjw6x2x80ey" path="res://SCRIPT/MAIN_MENU.gd" id="1_u6qdw"]
 
-[node name="Node2D" type="Node2D" unique_id=1648327047]
+[node name="Control" type="Control" unique_id=624937720]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_u6qdw")
 
 [node name="Panel" type="Panel" parent="." unique_id=548238697]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="BTN_UNIRSE" type="Button" parent="Panel" unique_id=1283097303]
 layout_mode = 0
-offset_left = 535.0
-offset_top = 268.0
-offset_right = 758.0
-offset_bottom = 359.0
+offset_left = 250.0
+offset_top = 663.0
+offset_right = 473.0
+offset_bottom = 754.0
 theme_override_font_sizes/font_size = 60
 text = "UNIRSE
 "

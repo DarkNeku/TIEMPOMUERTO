@@ -1,57 +1,69 @@
-[gd_scene load_steps=2 format=3 uid="uid://bq2a3hi3xgtbg"]
+[gd_scene format=3 uid="uid://bq2a3hi3xgtbg"]
 
 [ext_resource type="Script" uid="uid://d2xop5b30kg5v" path="res://SCRIPT/UNIRSE_SALA.gd" id="1_jhxum"]
 
-[node name="Node2D" type="Node2D"]
+[node name="Control" type="Control" unique_id=970571206]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_jhxum")
 
-[node name="Panel" type="Panel" parent="."]
-offset_right = 1280.0
-offset_bottom = 720.0
+[node name="Panel" type="Panel" parent="." unique_id=1017469626]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="BTN_UNIRSE_SALA" type="Button" parent="Panel"]
+[node name="BTN_UNIRSE_SALA" type="Button" parent="Panel" unique_id=487524184]
 layout_mode = 0
-offset_left = 411.0
-offset_top = 432.0
-offset_right = 849.0
-offset_bottom = 523.0
+offset_left = 131.0
+offset_top = 972.0
+offset_right = 570.0
+offset_bottom = 1063.0
 theme_override_font_sizes/font_size = 60
 text = "UNIRSE A SALA"
 
-[node name="BTN_VOLVER" type="Button" parent="Panel"]
+[node name="BTN_VOLVER" type="Button" parent="Panel" unique_id=1719438064]
 layout_mode = 0
-offset_left = 507.0
-offset_top = 548.0
-offset_right = 741.0
-offset_bottom = 639.0
+offset_left = 239.0
+offset_top = 1070.0
+offset_right = 473.0
+offset_bottom = 1161.0
 theme_override_font_sizes/font_size = 60
 text = "VOLVER
 "
 
-[node name="LISTA_SALA" type="ItemList" parent="Panel"]
+[node name="LISTA_SALA" type="ItemList" parent="Panel" unique_id=411081570]
 layout_mode = 0
-offset_left = 322.0
-offset_top = 224.0
-offset_right = 945.0
-offset_bottom = 406.0
+offset_left = 51.0
+offset_top = 318.0
+offset_right = 674.0
+offset_bottom = 560.0
+theme_override_font_sizes/font_size = 40
 
-[node name="TXT_NOMBRE" type="TextEdit" parent="Panel"]
+[node name="TXT_NOMBRE" type="TextEdit" parent="Panel" unique_id=791871624]
 layout_mode = 0
-offset_left = 347.0
+offset_left = 90.0
 offset_top = 68.0
-offset_right = 919.0
+offset_right = 662.0
 offset_bottom = 170.0
 theme_override_font_sizes/font_size = 30
 placeholder_text = "ESCRIBE EL NOMBRE AQUI"
 
-[node name="LOG_PANEL" type="Panel" parent="Panel"]
+[node name="LOG_PANEL" type="Panel" parent="Panel" unique_id=866818745]
+visible = false
 layout_mode = 0
-offset_left = 825.0
-offset_top = 534.0
-offset_right = 1270.0
-offset_bottom = 711.0
+offset_left = 143.0
+offset_top = 628.0
+offset_right = 588.0
+offset_bottom = 805.0
 
-[node name="LOG_LABEL" type="Label" parent="Panel/LOG_PANEL"]
+[node name="LOG_LABEL" type="Label" parent="Panel/LOG_PANEL" unique_id=914264884]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0

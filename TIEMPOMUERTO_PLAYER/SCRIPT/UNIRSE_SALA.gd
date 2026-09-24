@@ -1,4 +1,4 @@
-extends Node2D
+extends Control
 
 var timer: Timer
 var conectado: bool = false

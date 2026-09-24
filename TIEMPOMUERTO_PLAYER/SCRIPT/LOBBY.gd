@@ -1,4 +1,4 @@
-extends Node2D
+extends Control
 
 var timer: Timer
 var es_android: bool = false
@@ -16,6 +16,13 @@ func _ready():
 		print("=== LOBBY: Peer ID: " + str(Network.peer.get_unique_id()))
 	
 	Network.connect("jugadores_actualizados", Callable(self, "_on_jugadores_actualizados"))
+	
+	# Conectar botón VOLVER (si existe)
+	if has_node("Panel/BTN_VOLVER"):
+		$Panel/BTN_VOLVER.connect("pressed", Callable(self, "on_btn_volver_pressed"))
+		print("=== LOBBY: Botón VOLVER conectado")
+	else:
+		print("=== LOBBY: ADVERTENCIA: No se encontró BTN_VOLVER en el Panel")
 	
 	if Network.soy_host():
 		print("=== LOBBY: Soy el host, mostrando jugadores...")
@@ -69,3 +76,19 @@ func mostrar_jugadores(nombre_sala):
 			$Panel/LISTA_JUGADORES.add_item(jugador)
 	else:
 		$Panel/LISTA_JUGADORES.add_item("No hay jugadores")
+
+# ============================================
+# BOTÓN VOLVER - VUELVE A UNIRSE_SALA
+# ============================================
+func on_btn_volver_pressed():
+	print("=== LOBBY: Volviendo a UNIRSE_SALA ===")
+	
+	# Detener el timer para que no siga consultando
+	if timer:
+		timer.stop()
+	
+	# Desconectar del host (opcional, según lo que quieras)
+	# Network.desconectar()
+	
+	# Ir a UNIRSE_SALA
+	get_tree().change_scene_to_file("res://SCENE/UNIRSE_SALA.tscn")
