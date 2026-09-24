@@ -1,31 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://bgbmm001nwnjv"]
+[gd_scene format=3 uid="uid://bgbmm001nwnjv"]
 
 [ext_resource type="Script" uid="uid://c0vjw6x2x80ey" path="res://SCRIPT/MAIN_MENU.gd" id="1_u6qdw"]
 
-[node name="Node2D" type="Node2D"]
+[node name="Node2D" type="Node2D" unique_id=1648327047]
 script = ExtResource("1_u6qdw")
 
-[node name="Panel" type="Panel" parent="."]
-offset_left = 1.0
-offset_top = 2.0
-offset_right = 1281.0
-offset_bottom = 722.0
+[node name="Panel" type="Panel" parent="." unique_id=548238697]
 
-[node name="BTN_CREAR" type="Button" parent="Panel"]
-layout_mode = 0
-offset_left = 546.0
-offset_top = 80.0
-offset_right = 745.0
-offset_bottom = 172.0
-theme_override_font_sizes/font_size = 60
-text = "CREAR"
-
-[node name="BTN_UNIRSE" type="Button" parent="Panel"]
+[node name="BTN_UNIRSE" type="Button" parent="Panel" unique_id=1283097303]
 layout_mode = 0
 offset_left = 535.0
-offset_top = 362.0
+offset_top = 268.0
 offset_right = 758.0
-offset_bottom = 453.0
+offset_bottom = 359.0
 theme_override_font_sizes/font_size = 60
 text = "UNIRSE
 "
