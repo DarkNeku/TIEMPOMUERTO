@@ -1,4 +1,4 @@
-extends Node2D
+extends Control
 
 @onready var avatar_node = $Panel/AVATAR
 @onready var avatar_sprite = $Panel/AVATAR/AVATAR_ANIMACION
