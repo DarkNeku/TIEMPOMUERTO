@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://bbj14bq2dtni0"]
+
+[ext_resource type="Texture2D" uid="uid://c7i8swjt35aeg" path="res://ASSET/botones/lupa.png" id="1_hpkus"]
+
+[node name="LUPA" type="TextureButton" unique_id=2009761631]
+offset_right = 40.0
+offset_bottom = 40.0
+texture_normal = ExtResource("1_hpkus")
+texture_pressed = ExtResource("1_hpkus")
+texture_hover = ExtResource("1_hpkus")
+texture_focused = ExtResource("1_hpkus")

@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://d3kr8iokgrlmi"]
+
+[ext_resource type="Texture2D" uid="uid://csfc83efltjeb" path="res://ASSET/botones/huellas.png" id="1_ik57k"]
+
+[node name="CAMINAR" type="TextureButton" unique_id=1749730163]
+offset_right = 40.0
+offset_bottom = 40.0
+texture_normal = ExtResource("1_ik57k")
+texture_pressed = ExtResource("1_ik57k")
+texture_hover = ExtResource("1_ik57k")

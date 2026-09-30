@@ -1,0 +1,10 @@
+[gd_scene format=3 uid="uid://x41tqqj0mbmm"]
+
+[ext_resource type="Texture2D" uid="uid://exm1ucdwa84i" path="res://ASSET/botones/caja-de-carton.png" id="1_nkp3y"]
+
+[node name="OBJETO" type="TextureButton" unique_id=1463819195]
+offset_right = 40.0
+offset_bottom = 40.0
+texture_normal = ExtResource("1_nkp3y")
+texture_pressed = ExtResource("1_nkp3y")
+texture_hover = ExtResource("1_nkp3y")
