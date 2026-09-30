@@ -106,8 +106,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="IMAGEN_ROOM" type="TextureRect" parent="VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM" unique_id=1797655404]
-layout_mode = 1
+[node name="MUNDO" type="Node2D" parent="VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM" unique_id=1181443354]
+
+[node name="IMAGEN_ROOM" type="TextureRect" parent="VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO" unique_id=1797655404]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -115,6 +116,15 @@ grow_horizontal = 2
 grow_vertical = 2
 expand_mode = 1
 stretch_mode = 2
+
+[node name="CAPA_AVATARES" type="Control" parent="VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO" unique_id=536735861]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="PNL_INF" type="Panel" parent="VBoxContainer" unique_id=1820826094]
 layout_mode = 2
