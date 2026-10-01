@@ -4,6 +4,9 @@ extends Control
 @onready var imagen_room = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/IMAGEN_ROOM
 @onready var contenedor_room = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM
 @onready var capa_avatares = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/CAPA_AVATARES
+@onready var pnl_avatar = $VBoxContainer/PNL_AVATAR
+@onready var fila_nombres = $VBoxContainer/PNL_AVATAR/CONT_AVATAR_NOMBRE/FILA_NOMBRE
+@onready var fila_avatares = $VBoxContainer/PNL_AVATAR/CONT_AVATAR_NOMBRE/FILA_AVATARES
 
 const AVATAR_SCENE = preload("res://SPRITE/AVATAR.tscn")
 
@@ -18,16 +21,31 @@ var sensibilidad_movimiento: float = 0.5
 var margen_extra: float = 0.0
 
 # ============================================
-# AVATARES
+# AVATARES EN EL MAPA
 # ============================================
 var escala_avatar: float = 0.15
 var tamaño_avatar_base: float = 64.0
 var radio_circulo: float = 60.0
 var radio_circulo_con_obstaculos: float = 90.0
 var distancia_minima_obstaculo: float = 50.0
+var tiempo_entre_animaciones: float = 3.0
 
-# ✅ ANIMACIONES
-var tiempo_entre_animaciones: float = 3.0  # ← Cada 3 segundos animar
+# ============================================
+# SISTEMA DE TURNOS
+# ============================================
+var turno_actual: int = 0
+var avatars_fila: Array = []
+var escala_avatar_normal: float = 0.12
+var escala_avatar_activo: float = 0.15
+var color_avatar_activo: Color = Color(1, 1, 0.5)
+var color_avatar_normal: Color = Color(1, 1, 1)
+
+# ============================================
+# ✅ CONFIGURACIÓN DE LA FILA (AJUSTA AQUÍ)
+# ============================================
+var separacion_fila: int = 40                    # ← Separación entre avatares
+var tamaño_contenedor_avatar: Vector2 = Vector2(50, 60)  # ← Tamaño del Control
+var tamaño_label: Vector2 = Vector2(40, 15)     # ← Tamaño del Label
 
 # ============================================
 # VARIABLES INTERNAS
@@ -51,17 +69,18 @@ func _ready():
 	await get_tree().process_frame
 	await get_tree().process_frame
 	cargar_avatares()
+	cargar_fila_avatares()
 	
 	set_process_input(true)
 	print("=== JUGADOR: Listo ===")
 
 # ============================================
-# CARGAR AVATARES
+# CARGAR AVATARES EN EL MAPA
 # ============================================
 func cargar_avatares():
 	print("")
 	print("╔═══════════════════════════════════════╗")
-	print("║     CARGANDO AVATARES                 ║")
+	print("║     CARGANDO AVATARES EN EL MAPA      ║")
 	print("╚═══════════════════════════════════════╝")
 	
 	for child in capa_avatares.get_children():
@@ -76,17 +95,12 @@ func cargar_avatares():
 		return
 	
 	print("👥 Jugadores: " + str(jugadores.size()))
-	for j in jugadores:
-		print("   • " + j.get("nombre", "?") + " → '" + str(j.get("color", "")) + "'")
 	
 	var tamaño_habitacion = imagen_room.texture.get_size() if imagen_room.texture else Vector2(512, 512)
 	var centro_habitacion = tamaño_habitacion / 2
 	
 	var obstaculos = obtener_obstaculos_habitacion("Room00")
-	print("📦 Obstáculos: " + str(obstaculos.size()))
-	
 	var posiciones = calcular_posiciones_avatares(jugadores.size(), centro_habitacion, obstaculos)
-	print("📍 Posiciones calculadas: " + str(posiciones.size()))
 	
 	var indice = 0
 	for jugador in jugadores:
@@ -111,16 +125,137 @@ func cargar_avatares():
 	print("✅ Avatares cargados")
 
 # ============================================
-# OBTENER OBSTÁCULOS DE LA HABITACIÓN
+# CARGAR FILA DE AVATARES Y NOMBRES
+# ============================================
+func cargar_fila_avatares():
+	print("")
+	print("╔═══════════════════════════════════════╗")
+	print("║     CARGANDO FILA DE AVATARES         ║")
+	print("╚═══════════════════════════════════════╝")
+	
+	# ✅ Ajustar separación (MISMO VALOR en ambos)
+	fila_nombres.add_theme_constant_override("separation", separacion_fila)
+	fila_avatares.add_theme_constant_override("separation", separacion_fila)
+	
+	# Limpiar ambos contenedores
+	for child in fila_nombres.get_children():
+		child.queue_free()
+	for child in fila_avatares.get_children():
+		child.queue_free()
+	
+	avatars_fila.clear()
+	
+	await get_tree().process_frame
+	
+	var jugadores = Global.get_jugadores()
+	
+	if jugadores.size() == 0:
+		print("⚠️ No hay jugadores")
+		return
+	
+	for jugador in jugadores:
+		var nombre = jugador.get("nombre", "???")
+		var color = jugador.get("color", "")
+		
+		# ✅ 1. Crear el Label en FILA_NOMBRE
+		var label = Label.new()
+		label.name = "LBL_" + nombre
+		label.text = nombre
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+		label.add_theme_font_size_override("font_size", 20)
+		label.add_theme_color_override("font_color", Color(1, 1, 1))
+		label.custom_minimum_size = tamaño_label
+		label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		fila_nombres.add_child(label)
+		
+		# ✅ 2. Crear el Avatar en FILA_AVATARES
+		var contenedor_avatar = Control.new()
+		contenedor_avatar.name = "CTRL_" + nombre
+		contenedor_avatar.custom_minimum_size = tamaño_contenedor_avatar
+		contenedor_avatar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		
+		var avatar = AVATAR_SCENE.instantiate()
+		avatar.name = "FILA_" + nombre
+		avatar.scale = Vector2(escala_avatar_normal, escala_avatar_normal)
+		# Centrar el avatar en el Control
+		avatar.position = tamaño_contenedor_avatar / 2
+		
+		contenedor_avatar.add_child(avatar)
+		fila_avatares.add_child(contenedor_avatar)
+		
+		avatars_fila.append(avatar)
+		
+		await get_tree().process_frame
+		configurar_animacion_fila(avatar, color)
+	
+	await get_tree().process_frame
+	actualizar_turno_visual()
+	
+	print("✅ Fila de avatares cargada (" + str(avatars_fila.size()) + " avatares)")
+
+# ============================================
+# CONFIGURAR ANIMACIÓN DE AVATAR EN LA FILA
+# ============================================
+func configurar_animacion_fila(avatar: Node, color: String):
+	var animated_sprite = avatar.find_child("AVATAR_ANIMACION", true, false)
+	
+	if not animated_sprite:
+		print("  ❌ No se encontró AVATAR_ANIMACION")
+		return
+	
+	var nombre_animacion = "AVATAR_" + color.to_upper().strip_edges()
+	
+	if animated_sprite.sprite_frames.has_animation(nombre_animacion):
+		animated_sprite.animation = nombre_animacion
+		animated_sprite.frame = 0
+		animated_sprite.stop()
+		print("  ✅ " + avatar.name + " → " + nombre_animacion)
+	else:
+		print("  ❌ No existe: " + nombre_animacion)
+
+# ============================================
+# ACTUALIZAR TURNO VISUAL
+# ============================================
+func actualizar_turno_visual():
+	print("🎯 Actualizando turno visual: jugador " + str(turno_actual))
+	
+	for i in range(avatars_fila.size()):
+		var avatar = avatars_fila[i]
+		
+		if not is_instance_valid(avatar):
+			continue
+		
+		if i == turno_actual:
+			var tween = create_tween()
+			tween.tween_property(avatar, "scale", Vector2(escala_avatar_activo, escala_avatar_activo), 0.3)
+			avatar.modulate = color_avatar_activo
+			print("  ⭐ " + avatar.name + " → ACTIVO")
+		else:
+			var tween = create_tween()
+			tween.tween_property(avatar, "scale", Vector2(escala_avatar_normal, escala_avatar_normal), 0.3)
+			avatar.modulate = color_avatar_normal
+			print("  • " + avatar.name + " → normal")
+
+# ============================================
+# AVANZAR TURNO
+# ============================================
+func siguiente_turno():
+	if avatars_fila.size() == 0:
+		return
+	
+	turno_actual = (turno_actual + 1) % avatars_fila.size()
+	print("🔄 Nuevo turno: " + str(turno_actual))
+	actualizar_turno_visual()
+
+# ============================================
+# OBTENER OBSTÁCULOS
 # ============================================
 func obtener_obstaculos_habitacion(nombre_habitacion: String) -> Array:
 	var obstaculos = []
-	
-	# TODO: Cargar desde JSON de habitaciones
 	if nombre_habitacion == "Room15":
-		# obstaculos.append({"id": "cama", "x": 150.0, "y": 100.0, "radio": 50.0})
+		# obstaculos.append({"id": "cama", "x": 150.0, "y": 100.0})
 		pass
-	
 	return obstaculos
 
 # ============================================
@@ -129,21 +264,16 @@ func obtener_obstaculos_habitacion(nombre_habitacion: String) -> Array:
 func calcular_posiciones_avatares(cantidad: int, centro: Vector2, obstaculos: Array) -> Array:
 	var posiciones = []
 	
-	# CASO 1: Un solo avatar sin obstáculos → Centro
 	if cantidad == 1 and obstaculos.size() == 0:
 		posiciones.append(centro)
-		print("  📍 Caso: 1 avatar, sin obstáculos → Centro")
 		return posiciones
 	
-	# CASO 2: Varios avatares → Círculo
 	var radio = radio_circulo
 	if obstaculos.size() > 0:
 		radio = radio_circulo_con_obstaculos
 	
 	var angulo_inicial = -PI / 2
 	var angulo_entre = (2 * PI) / cantidad if cantidad > 1 else 0
-	
-	print("  📍 Caso: " + str(cantidad) + " avatares, radio " + str(radio))
 	
 	for i in range(cantidad):
 		var angulo = angulo_inicial + (angulo_entre * i)
@@ -159,9 +289,6 @@ func calcular_posiciones_avatares(cantidad: int, centro: Vector2, obstaculos: Ar
 	
 	return posiciones
 
-# ============================================
-# VERIFICAR OBSTÁCULO CERCA
-# ============================================
 func hay_obstaculo_cerca(posicion: Vector2, obstaculos: Array) -> bool:
 	for obs in obstaculos:
 		var pos_obs = Vector2(obs.get("x", 0.0), obs.get("y", 0.0))
@@ -170,52 +297,31 @@ func hay_obstaculo_cerca(posicion: Vector2, obstaculos: Array) -> bool:
 	return false
 
 # ============================================
-# CONFIGURAR ANIMACIÓN DEL AVATAR
+# CONFIGURAR ANIMACIÓN EN EL MAPA
 # ============================================
 func configurar_animacion_avatar(avatar: Node, color: String):
 	var animated_sprite = avatar.find_child("AVATAR_ANIMACION", true, false)
 	
 	if not animated_sprite:
-		print("  ❌ No se encontró AVATAR_ANIMACION en " + avatar.name)
 		return
 	
 	var nombre_animacion = "AVATAR_" + color.to_upper().strip_edges()
 	
 	if animated_sprite.sprite_frames.has_animation(nombre_animacion):
-		# ✅ Establecer la animación
 		animated_sprite.animation = nombre_animacion
-		
-		# ✅ Iniciar en el frame 0 (quieto)
 		animated_sprite.frame = 0
 		animated_sprite.stop()
-		
-		print("  ✅ " + avatar.name + " → " + nombre_animacion)
-		
-		# ✅ Iniciar el ciclo de animación
 		iniciar_ciclo_animacion(animated_sprite)
-	else:
-		print("  ❌ No existe: " + nombre_animacion)
 
-# ============================================
-# CICLO DE ANIMACIÓN
-# ============================================
 func iniciar_ciclo_animacion(animated_sprite: AnimatedSprite2D):
-	# Espera inicial aleatoria (para que no todos animen al mismo tiempo)
 	var espera_inicial = randf_range(0.5, tiempo_entre_animaciones)
 	await get_tree().create_timer(espera_inicial).timeout
 	
 	while is_instance_valid(animated_sprite):
-		# Reproducir la animación
 		animated_sprite.play()
-		
-		# Esperar a que termine
 		await animated_sprite.animation_finished
-		
-		# Detener en el frame 0 (quieto)
 		animated_sprite.stop()
 		animated_sprite.frame = 0
-		
-		# Esperar X segundos antes de la siguiente animación
 		await get_tree().create_timer(tiempo_entre_animaciones).timeout
 
 # ============================================
@@ -281,7 +387,7 @@ func calcular_limite_movimiento(tamaño_contenedor: Vector2, ancho_escalado: flo
 	limite_movimiento_actual = Vector2(exceso_x + margen_extra, exceso_y + margen_extra)
 
 # ============================================
-# INPUT (zoom + arrastre)
+# INPUT
 # ============================================
 func _input(event: InputEvent):
 	if event is InputEventMouseButton:

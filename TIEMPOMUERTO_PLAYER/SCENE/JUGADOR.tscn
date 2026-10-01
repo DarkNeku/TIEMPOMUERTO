@@ -92,6 +92,26 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 
+[node name="CONT_AVATAR_NOMBRE" type="VBoxContainer" parent="VBoxContainer/PNL_AVATAR" unique_id=1011047405]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FILA_NOMBRE" type="HBoxContainer" parent="VBoxContainer/PNL_AVATAR/CONT_AVATAR_NOMBRE" unique_id=60117948]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="FILA_AVATARES" type="HBoxContainer" parent="VBoxContainer/PNL_AVATAR/CONT_AVATAR_NOMBRE" unique_id=1301473195]
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
 [node name="PNL_ROOM" type="Panel" parent="VBoxContainer" unique_id=1945051989]
 custom_minimum_size = Vector2(0, 700)
 layout_mode = 2
