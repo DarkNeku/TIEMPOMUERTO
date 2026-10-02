@@ -1,0 +1,8 @@
+[gd_scene format=3 uid="uid://ci5y5sqvhl23w"]
+
+[ext_resource type="Texture2D" uid="uid://dh0ldwld83gqa" path="res://ASSET/botones/interactivo.png" id="1_ovalv"]
+
+[node name="INTERACTUAR" type="TextureButton" unique_id=685619578]
+texture_normal = ExtResource("1_ovalv")
+texture_pressed = ExtResource("1_ovalv")
+texture_hover = ExtResource("1_ovalv")

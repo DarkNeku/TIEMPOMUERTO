@@ -149,6 +149,8 @@ mouse_filter = 2
 
 [node name="CAPA_PUERTAS" type="Node2D" parent="VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO" unique_id=4093914]
 
+[node name="CAPA_FICHAS" type="Node2D" parent="VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO" unique_id=1011631835]
+
 [node name="PNL_INF" type="Panel" parent="VBoxContainer" unique_id=1820826094]
 layout_mode = 2
 size_flags_vertical = 3

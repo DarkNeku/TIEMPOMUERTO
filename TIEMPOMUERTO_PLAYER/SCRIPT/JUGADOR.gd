@@ -4,6 +4,7 @@ extends Control
 @onready var imagen_room = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/IMAGEN_ROOM
 @onready var contenedor_room = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM
 @onready var capa_puertas = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/CAPA_PUERTAS
+@onready var capa_fichas = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/CAPA_FICHAS
 @onready var capa_avatares = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/CAPA_AVATARES
 @onready var pnl_avatar = $VBoxContainer/PNL_AVATAR
 @onready var fila_nombres = $VBoxContainer/PNL_AVATAR/CONT_AVATAR_NOMBRE/FILA_NOMBRE
@@ -12,6 +13,10 @@ extends Control
 
 const AVATAR_SCENE = preload("res://SPRITE/AVATAR.tscn")
 const PUERTA_SCENE = preload("res://SPRITE/PUERTAS.tscn")
+const FICHA_LUPA = preload("res://SPRITE/LUPA.tscn")
+const FICHA_CAMINAR = preload("res://SPRITE/CAMINAR.tscn")
+const FICHA_INTERACTUAR = preload("res://SPRITE/INTERACTUAR.tscn")
+const FICHA_OBJETO = preload("res://SPRITE/OBJETO.tscn")
 
 # ============================================
 # CONFIGURACIÓN DEL JUGADOR ACTUAL
@@ -29,15 +34,56 @@ var sensibilidad_movimiento: float = 0.5
 var margen_extra: float = 0.0
 
 # ============================================
-# ✅ CONFIGURACIÓN DE PUERTAS (AJUSTA AQUÍ)
+# ✅ CONFIGURACIÓN DE PUERTAS
 # ============================================
-var escala_puerta_global: float = 0.5     # ← Cambia el tamaño de TODAS las puertas
-# Valores: 0.3 (pequeña) - 0.5 (mediana) - 0.8 (grande) - 1.0 (original)
+
+# ESCALA cuando la puerta está CERRADA
+var escala_puerta_cerrada = {
+	"arriba":    Vector2(0.4, 0.4),
+	"abajo":     Vector2(0.4, 0.4),
+	"izquierda": Vector2(0.4, 0.5),
+	"derecha":   Vector2(0.4, 0.5)
+}
+
+# ESCALA cuando la puerta está ABIERTA
+var escala_puerta_abierta = {
+	"arriba":    Vector2(0.4, 0.4),
+	"abajo":     Vector2(0.4, 0.4),
+	"izquierda": Vector2(0.4, 0.4),
+	"derecha":   Vector2(0.4, 0.4)
+}
+
+# OFFSET (posición) cuando la puerta está CERRADA
+var offset_puerta_cerrada = {
+	"arriba":    Vector2(0, 0),
+	"abajo":     Vector2(0, 0),
+	"izquierda": Vector2(0, 0),
+	"derecha":   Vector2(0, 0)
+}
+
+# OFFSET (posición) cuando la puerta está ABIERTA
+var offset_puerta_abierta = {
+	"arriba":    Vector2(0, 27),
+	"abajo":     Vector2(0, -25),
+	"izquierda": Vector2(25, 10),
+	"derecha":   Vector2(-25, 5)
+}
+
+# ============================================
+# ✅ CONFIGURACIÓN DE FICHAS
+# ============================================
+var escala_ficha: float = 0.05
+
+# OFFSET POR DIRECCIÓN
+var offset_ficha_arriba:    Vector2 = Vector2(-8, 0)
+var offset_ficha_abajo:     Vector2 = Vector2(-8, -18)
+var offset_ficha_izquierda: Vector2 = Vector2(0, 0)
+var offset_ficha_derecha:   Vector2 = Vector2(-15, -10)
 
 # ============================================
 # AVATARES EN EL MAPA
 # ============================================
-var escala_avatar: float = 0.15
+var escala_avatar: float = 0.11
 var tamaño_avatar_base: float = 64.0
 var radio_circulo: float = 60.0
 var radio_circulo_con_obstaculos: float = 90.0
@@ -60,6 +106,11 @@ var color_avatar_normal: Color = Color(1, 1, 1)
 var separacion_fila: int = 40
 var tamaño_contenedor_avatar: Vector2 = Vector2(50, 60)
 var tamaño_label: Vector2 = Vector2(40, 15)
+
+# ============================================
+# ESTADO DE LAS PUERTAS (en memoria)
+# ============================================
+var estado_fichas: Dictionary = {}
 
 # ============================================
 # VARIABLES INTERNAS
@@ -148,11 +199,15 @@ func asignar_nombre_jugador():
 func cargar_puertas(nombre_habitacion: String):
 	print("")
 	print("╔═══════════════════════════════════════╗")
-	print("║     CARGANDO PUERTAS                  ║")
+	print("║     CARGANDO PUERTAS Y FICHAS         ║")
 	print("╚═══════════════════════════════════════╝")
 	
 	for child in capa_puertas.get_children():
 		child.queue_free()
+	for child in capa_fichas.get_children():
+		child.queue_free()
+	
+	estado_fichas.clear()
 	
 	await get_tree().process_frame
 	
@@ -167,8 +222,10 @@ func cargar_puertas(nombre_habitacion: String):
 	for direccion in puertas_iniciales:
 		var posicion = RoomData.get_posicion_puerta(direccion)
 		crear_puerta(direccion, posicion)
+		estado_fichas[direccion] = "lupa"
+		crear_ficha(direccion, "lupa", posicion)
 	
-	print("✅ " + str(puertas_iniciales.size()) + " puertas cargadas")
+	print("✅ " + str(puertas_iniciales.size()) + " puertas y fichas cargadas")
 
 # ============================================
 # CREAR UNA PUERTA
@@ -178,19 +235,14 @@ func crear_puerta(direccion: String, posicion: Vector2):
 	
 	var puerta = PUERTA_SCENE.instantiate()
 	puerta.name = "PUERTA_" + direccion.to_upper()
-	puerta.position = posicion
 	
-	# ✅ ESCALA SEGÚN DIRECCIÓN (AJUSTA AQUÍ)
-	var escala_puerta = Vector2(0.5, 0.5)   # ← Por defecto
+	# ✅ Aplicar posición y escala CERRADA
+	var offset_cerrada = offset_puerta_cerrada.get(direccion, Vector2.ZERO)
+	var escala_cerrada = escala_puerta_cerrada.get(direccion, Vector2(0.4, 0.4))
 	
-	match direccion.to_lower():
-		"arriba":    escala_puerta = Vector2(0.4, 0.4)   # ← Puerta ARRIBA
-		"abajo":     escala_puerta = Vector2(0.4, 0.4)   # ← Puerta ABAJO
-		"izquierda": escala_puerta = Vector2(0.4, 0.5)   # ← Puerta IZQUIERDA
-		"derecha":   escala_puerta = Vector2(0.4, 0.5)   # ← Puerta DERECHA
-	
-	puerta.scale = escala_puerta
-	print("     📏 Escala: " + str(escala_puerta))
+	puerta.position = posicion + offset_cerrada
+	puerta.scale = escala_cerrada
+	print("     📏 Escala cerrada: " + str(escala_cerrada) + " | Offset: " + str(offset_cerrada))
 	
 	var puertas_cerradas = puerta.get_node("PUERTAS_CERRADAS")
 	var puertas_abiertas = puerta.get_node("PUERTAS_ABIERTAS")
@@ -208,6 +260,135 @@ func crear_puerta(direccion: String, posicion: Vector2):
 		puertas_abiertas.visible = false
 	
 	capa_puertas.add_child(puerta)
+
+# ============================================
+# CREAR FICHA SOBRE UNA PUERTA
+# ============================================
+func crear_ficha(direccion: String, tipo: String, posicion: Vector2):
+	print("     🎯 Creando ficha '" + tipo + "' en " + direccion)
+	
+	var escena_ficha = null
+	match tipo.to_lower():
+		"lupa":        escena_ficha = FICHA_LUPA
+		"caminar":     escena_ficha = FICHA_CAMINAR
+		"interactuar": escena_ficha = FICHA_INTERACTUAR
+		"objeto":      escena_ficha = FICHA_OBJETO
+	
+	if not escena_ficha:
+		print("     ❌ Tipo de ficha desconocido: " + tipo)
+		return
+	
+	var ficha = escena_ficha.instantiate()
+	ficha.name = "FICHA_" + direccion.to_upper() + "_" + tipo.to_upper()
+	
+	var offset = obtener_offset_ficha(direccion)
+	ficha.position = posicion + offset
+	ficha.scale = Vector2(escala_ficha, escala_ficha)
+	
+	ficha.pressed.connect(_on_ficha_pressed.bind(direccion, tipo))
+	
+	capa_fichas.add_child(ficha)
+	print("     ✅ Ficha creada en " + str(ficha.position) + " (offset: " + str(offset) + ")")
+
+# ============================================
+# OBTENER OFFSET SEGÚN DIRECCIÓN
+# ============================================
+func obtener_offset_ficha(direccion: String) -> Vector2:
+	match direccion.to_lower():
+		"arriba":    return offset_ficha_arriba
+		"abajo":     return offset_ficha_abajo
+		"izquierda": return offset_ficha_izquierda
+		"derecha":   return offset_ficha_derecha
+	return Vector2.ZERO
+
+# ============================================
+# AL PRESIONAR UNA FICHA
+# ============================================
+func _on_ficha_pressed(direccion: String, tipo: String):
+	print("")
+	print("🎯 Ficha presionada: " + tipo + " en " + direccion)
+	
+	match tipo.to_lower():
+		"lupa":
+			investigar_puerta(direccion)
+		"interactuar":
+			interactuar_puerta(direccion)
+		"caminar":
+			caminar_por_puerta(direccion)
+		"objeto":
+			recoger_objeto(direccion)
+
+# ============================================
+# ACCIONES DE LAS FICHAS
+# ============================================
+func investigar_puerta(direccion: String):
+	print("🔍 Investigando puerta " + direccion)
+	# TODO: Lógica real de investigación
+	abrir_puerta(direccion)
+
+func interactuar_puerta(direccion: String):
+	print("✋ Interactuando con puerta " + direccion)
+	# TODO: Lógica de interacción (usar llave, etc.)
+
+func caminar_por_puerta(direccion: String):
+	print("👣 Caminando por puerta " + direccion)
+	# TODO: Lógica de movimiento (pedir código, etc.)
+
+func recoger_objeto(direccion: String):
+	print("🎁 Recogiendo objeto en " + direccion)
+
+# ============================================
+# ABRIR PUERTA (cambia a ABIERTA y ficha CAMINAR)
+# ============================================
+func abrir_puerta(direccion: String):
+	print("🔓 Abriendo puerta " + direccion)
+	
+	# 1. Cambiar el sprite de la puerta a ABIERTA
+	var puerta = capa_puertas.get_node_or_null("PUERTA_" + direccion.to_upper())
+	if puerta:
+		var puertas_cerradas = puerta.get_node("PUERTAS_CERRADAS")
+		var puertas_abiertas = puerta.get_node("PUERTAS_ABIERTAS")
+		
+		var codigo_dir = obtener_codigo_direccion(direccion)
+		var animacion_abierta = "PUERTA_" + codigo_dir + "_ABIERTA"
+		
+		if puertas_abiertas and puertas_abiertas.sprite_frames.has_animation(animacion_abierta):
+			puertas_abiertas.animation = animacion_abierta
+			puertas_abiertas.play()
+			puertas_abiertas.visible = true
+		
+		if puertas_cerradas:
+			puertas_cerradas.visible = false
+		
+		# ✅ Aplicar posición y escala ABIERTA
+		var posicion_base = RoomData.get_posicion_puerta(direccion)
+		var offset_abierta = offset_puerta_abierta.get(direccion, Vector2.ZERO)
+		var escala_abierta = escala_puerta_abierta.get(direccion, Vector2(0.4, 0.4))
+		
+		puerta.position = posicion_base + offset_abierta
+		puerta.scale = escala_abierta
+		print("     📏 Escala abierta: " + str(escala_abierta) + " | Offset: " + str(offset_abierta))
+	
+	# 2. Cambiar la ficha a CAMINAR
+	cambiar_ficha(direccion, "caminar")
+
+# ============================================
+# CAMBIAR LA FICHA DE UNA PUERTA
+# ============================================
+func cambiar_ficha(direccion: String, nuevo_tipo: String):
+	print("🔄 Cambiando ficha de " + direccion + " a " + nuevo_tipo)
+	
+	estado_fichas[direccion] = nuevo_tipo
+	
+	var nombre_base = "FICHA_" + direccion.to_upper()
+	for child in capa_fichas.get_children():
+		if child.name.begins_with(nombre_base):
+			child.queue_free()
+	
+	await get_tree().process_frame
+	var posicion = RoomData.get_posicion_puerta(direccion)
+	crear_ficha(direccion, nuevo_tipo, posicion)
+
 # ============================================
 # CONVERTIR DIRECCIÓN A CÓDIGO
 # ============================================

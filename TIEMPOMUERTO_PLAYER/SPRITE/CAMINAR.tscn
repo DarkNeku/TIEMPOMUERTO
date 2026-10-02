@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://d3kr8iokgrlmi"]
 
-[ext_resource type="Texture2D" uid="uid://csfc83efltjeb" path="res://ASSET/botones/huellas.png" id="1_ik57k"]
+[ext_resource type="Texture2D" uid="uid://cxkbne8dpqfv5" path="res://ASSET/botones/huella.png" id="1_ik57k"]
 
 [node name="CAMINAR" type="TextureButton" unique_id=1749730163]
 offset_right = 40.0
