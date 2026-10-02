@@ -3,6 +3,7 @@ extends Control
 @onready var mundo = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO
 @onready var imagen_room = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/IMAGEN_ROOM
 @onready var contenedor_room = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM
+@onready var capa_puertas = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/CAPA_PUERTAS
 @onready var capa_avatares = $VBoxContainer/PNL_ROOM/CONTENEDOR_ROOM/MUNDO/CAPA_AVATARES
 @onready var pnl_avatar = $VBoxContainer/PNL_AVATAR
 @onready var fila_nombres = $VBoxContainer/PNL_AVATAR/CONT_AVATAR_NOMBRE/FILA_NOMBRE
@@ -10,12 +11,11 @@ extends Control
 @onready var lbl_nombre = $VBoxContainer/PNL_SUP/HBoxContainer/Panel2/LBL_NOMBRE
 
 const AVATAR_SCENE = preload("res://SPRITE/AVATAR.tscn")
+const PUERTA_SCENE = preload("res://SPRITE/PUERTAS.tscn")
 
 # ============================================
 # CONFIGURACIÓN DEL JUGADOR ACTUAL
 # ============================================
-# Índice del jugador en el JSON:
-# 0 = JOSE, 1 = JENNY, 2 = ALE, 3 = FRAN, 4 = CRIS
 var mi_indice_jugador: int = 0
 
 # ============================================
@@ -27,6 +27,12 @@ var zoom_maximo: float = 1.8
 var velocidad_zoom: float = 0.05
 var sensibilidad_movimiento: float = 0.5
 var margen_extra: float = 0.0
+
+# ============================================
+# ✅ CONFIGURACIÓN DE PUERTAS (AJUSTA AQUÍ)
+# ============================================
+var escala_puerta_global: float = 0.5     # ← Cambia el tamaño de TODAS las puertas
+# Valores: 0.3 (pequeña) - 0.5 (mediana) - 0.8 (grande) - 1.0 (original)
 
 # ============================================
 # AVATARES EN EL MAPA
@@ -73,15 +79,16 @@ var offset_inicial_arrastre: Vector2 = Vector2.ZERO
 func _ready():
 	print("=== JUGADOR: Iniciando ===")
 	
-	# ✅ Esperar a que Global termine de cargar
 	await get_tree().create_timer(0.3).timeout
 	
-	# ✅ Asignar el nombre del jugador desde el JSON
 	asignar_nombre_jugador()
 	
 	cargar_habitacion("Room00")
 	await get_tree().process_frame
 	await get_tree().process_frame
+	
+	cargar_puertas("Room00")
+	
 	cargar_avatares()
 	cargar_fila_avatares()
 	
@@ -97,53 +104,120 @@ func asignar_nombre_jugador():
 	print("║     ASIGNANDO NOMBRE DEL JUGADOR      ║")
 	print("╚═══════════════════════════════════════╝")
 	
-	# ✅ Verificar que Global existe
 	if not Global:
 		print("❌ Global no está cargado")
 		if lbl_nombre:
 			lbl_nombre.text = "SIN GLOBAL"
 		return
 	
-	# ✅ Verificar que data_manager existe
 	if not Global.data_manager:
 		print("❌ data_manager no está cargado")
 		if lbl_nombre:
 			lbl_nombre.text = "SIN DATA"
 		return
 	
-	# ✅ Obtener jugadores
 	var jugadores = Global.get_jugadores()
 	print("📊 Jugadores obtenidos: " + str(jugadores.size()))
 	
 	if jugadores.size() == 0:
 		print("⚠️ No hay jugadores en el JSON")
-		print("   Verificar: DATA/datos_prueba.json")
 		if lbl_nombre:
 			lbl_nombre.text = "SIN NOMBRE"
 		return
 	
-	# Mostrar todos los jugadores para diagnóstico
 	for i in range(jugadores.size()):
 		var j = jugadores[i]
 		print("   " + str(i) + ". " + j.get("nombre", "?") + " → " + str(j.get("color", "")))
 	
-	# Verificar índice
 	if mi_indice_jugador >= jugadores.size():
-		print("⚠️ Índice " + str(mi_indice_jugador) + " fuera de rango. Usando 0.")
 		mi_indice_jugador = 0
 	
-	# Leer el nombre
 	var jugador = jugadores[mi_indice_jugador]
 	var nombre_jugador = jugador.get("nombre", "JUGADOR")
 	var color_jugador = jugador.get("color", "")
 	
-	# Asignar al Label
 	if lbl_nombre:
 		lbl_nombre.text = nombre_jugador
 		print("✅ Nombre asignado: " + nombre_jugador + " (color: " + color_jugador + ")")
 	else:
 		print("❌ No se encontró LBL_NOMBRE")
-		print("   Ruta esperada: VBoxContainer/PNL_SUP/HBoxContainer/Panel2/LBL_NOMBRE")
+
+# ============================================
+# CARGAR PUERTAS DE LA HABITACIÓN
+# ============================================
+func cargar_puertas(nombre_habitacion: String):
+	print("")
+	print("╔═══════════════════════════════════════╗")
+	print("║     CARGANDO PUERTAS                  ║")
+	print("╚═══════════════════════════════════════╝")
+	
+	for child in capa_puertas.get_children():
+		child.queue_free()
+	
+	await get_tree().process_frame
+	
+	var puertas_iniciales = RoomData.get_puertas_iniciales(nombre_habitacion)
+	
+	if puertas_iniciales.size() == 0:
+		print("⚠️ No hay puertas en " + nombre_habitacion)
+		return
+	
+	print("🚪 Puertas a cargar: " + str(puertas_iniciales))
+	
+	for direccion in puertas_iniciales:
+		var posicion = RoomData.get_posicion_puerta(direccion)
+		crear_puerta(direccion, posicion)
+	
+	print("✅ " + str(puertas_iniciales.size()) + " puertas cargadas")
+
+# ============================================
+# CREAR UNA PUERTA
+# ============================================
+func crear_puerta(direccion: String, posicion: Vector2):
+	print("  🚪 Creando puerta " + direccion + " en " + str(posicion))
+	
+	var puerta = PUERTA_SCENE.instantiate()
+	puerta.name = "PUERTA_" + direccion.to_upper()
+	puerta.position = posicion
+	
+	# ✅ ESCALA SEGÚN DIRECCIÓN (AJUSTA AQUÍ)
+	var escala_puerta = Vector2(0.5, 0.5)   # ← Por defecto
+	
+	match direccion.to_lower():
+		"arriba":    escala_puerta = Vector2(0.4, 0.4)   # ← Puerta ARRIBA
+		"abajo":     escala_puerta = Vector2(0.4, 0.4)   # ← Puerta ABAJO
+		"izquierda": escala_puerta = Vector2(0.4, 0.5)   # ← Puerta IZQUIERDA
+		"derecha":   escala_puerta = Vector2(0.4, 0.5)   # ← Puerta DERECHA
+	
+	puerta.scale = escala_puerta
+	print("     📏 Escala: " + str(escala_puerta))
+	
+	var puertas_cerradas = puerta.get_node("PUERTAS_CERRADAS")
+	var puertas_abiertas = puerta.get_node("PUERTAS_ABIERTAS")
+	
+	var codigo_dir = obtener_codigo_direccion(direccion)
+	
+	if puertas_cerradas:
+		var animacion_cerrada = "PUERTA_" + codigo_dir + "_CERRADA"
+		if puertas_cerradas.sprite_frames.has_animation(animacion_cerrada):
+			puertas_cerradas.animation = animacion_cerrada
+			puertas_cerradas.play()
+			puertas_cerradas.visible = true
+	
+	if puertas_abiertas:
+		puertas_abiertas.visible = false
+	
+	capa_puertas.add_child(puerta)
+# ============================================
+# CONVERTIR DIRECCIÓN A CÓDIGO
+# ============================================
+func obtener_codigo_direccion(direccion: String) -> String:
+	match direccion.to_lower():
+		"arriba":    return "ARR"
+		"abajo":     return "ABA"
+		"izquierda": return "IZQ"
+		"derecha":   return "DER"
+	return "ARR"
 
 # ============================================
 # CARGAR AVATARES EN EL MAPA
@@ -204,11 +278,9 @@ func cargar_fila_avatares():
 	print("║     CARGANDO FILA DE AVATARES         ║")
 	print("╚═══════════════════════════════════════╝")
 	
-	# Ajustar separación (MISMO VALOR en ambos)
 	fila_nombres.add_theme_constant_override("separation", separacion_fila)
 	fila_avatares.add_theme_constant_override("separation", separacion_fila)
 	
-	# Limpiar ambos contenedores
 	for child in fila_nombres.get_children():
 		child.queue_free()
 	for child in fila_avatares.get_children():
@@ -228,7 +300,6 @@ func cargar_fila_avatares():
 		var nombre = jugador.get("nombre", "???")
 		var color = jugador.get("color", "")
 		
-		# ✅ 1. Crear el Label en FILA_NOMBRE
 		var label = Label.new()
 		label.name = "LBL_" + nombre
 		label.text = nombre
@@ -240,7 +311,6 @@ func cargar_fila_avatares():
 		label.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		fila_nombres.add_child(label)
 		
-		# ✅ 2. Crear el Avatar en FILA_AVATARES
 		var contenedor_avatar = Control.new()
 		contenedor_avatar.name = "CTRL_" + nombre
 		contenedor_avatar.custom_minimum_size = tamaño_contenedor_avatar
@@ -323,8 +393,6 @@ func siguiente_turno():
 # ============================================
 func obtener_obstaculos_habitacion(nombre_habitacion: String) -> Array:
 	var obstaculos = []
-	if nombre_habitacion == "Room15":
-		pass
 	return obstaculos
 
 # ============================================

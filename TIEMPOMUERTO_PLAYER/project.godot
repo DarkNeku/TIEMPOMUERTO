@@ -23,6 +23,7 @@ config/icon="res://icon.svg"
 
 Global="*res://SCRIPT/Global.gd"
 Network="*res://SCRIPT/Network.gd"
+RoomData="*uid://bao5iuinkh8ep"
 
 [display]
 
