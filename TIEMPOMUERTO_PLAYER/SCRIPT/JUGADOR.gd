@@ -7,11 +7,19 @@ extends Control
 @onready var pnl_avatar = $VBoxContainer/PNL_AVATAR
 @onready var fila_nombres = $VBoxContainer/PNL_AVATAR/CONT_AVATAR_NOMBRE/FILA_NOMBRE
 @onready var fila_avatares = $VBoxContainer/PNL_AVATAR/CONT_AVATAR_NOMBRE/FILA_AVATARES
+@onready var lbl_nombre = $VBoxContainer/PNL_SUP/HBoxContainer/Panel2/LBL_NOMBRE
 
 const AVATAR_SCENE = preload("res://SPRITE/AVATAR.tscn")
 
 # ============================================
-# CONFIGURACIÓN
+# CONFIGURACIÓN DEL JUGADOR ACTUAL
+# ============================================
+# Índice del jugador en el JSON:
+# 0 = JOSE, 1 = JENNY, 2 = ALE, 3 = FRAN, 4 = CRIS
+var mi_indice_jugador: int = 0
+
+# ============================================
+# CONFIGURACIÓN GENERAL
 # ============================================
 var factor_alejamiento: float = 0.9
 var zoom_minimo: float = 0.9
@@ -41,11 +49,11 @@ var color_avatar_activo: Color = Color(1, 1, 0.5)
 var color_avatar_normal: Color = Color(1, 1, 1)
 
 # ============================================
-# ✅ CONFIGURACIÓN DE LA FILA (AJUSTA AQUÍ)
+# CONFIGURACIÓN DE LA FILA
 # ============================================
-var separacion_fila: int = 40                    # ← Separación entre avatares
-var tamaño_contenedor_avatar: Vector2 = Vector2(50, 60)  # ← Tamaño del Control
-var tamaño_label: Vector2 = Vector2(40, 15)     # ← Tamaño del Label
+var separacion_fila: int = 40
+var tamaño_contenedor_avatar: Vector2 = Vector2(50, 60)
+var tamaño_label: Vector2 = Vector2(40, 15)
 
 # ============================================
 # VARIABLES INTERNAS
@@ -65,6 +73,12 @@ var offset_inicial_arrastre: Vector2 = Vector2.ZERO
 func _ready():
 	print("=== JUGADOR: Iniciando ===")
 	
+	# ✅ Esperar a que Global termine de cargar
+	await get_tree().create_timer(0.3).timeout
+	
+	# ✅ Asignar el nombre del jugador desde el JSON
+	asignar_nombre_jugador()
+	
 	cargar_habitacion("Room00")
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -73,6 +87,63 @@ func _ready():
 	
 	set_process_input(true)
 	print("=== JUGADOR: Listo ===")
+
+# ============================================
+# ASIGNAR NOMBRE DEL JUGADOR DESDE EL JSON
+# ============================================
+func asignar_nombre_jugador():
+	print("")
+	print("╔═══════════════════════════════════════╗")
+	print("║     ASIGNANDO NOMBRE DEL JUGADOR      ║")
+	print("╚═══════════════════════════════════════╝")
+	
+	# ✅ Verificar que Global existe
+	if not Global:
+		print("❌ Global no está cargado")
+		if lbl_nombre:
+			lbl_nombre.text = "SIN GLOBAL"
+		return
+	
+	# ✅ Verificar que data_manager existe
+	if not Global.data_manager:
+		print("❌ data_manager no está cargado")
+		if lbl_nombre:
+			lbl_nombre.text = "SIN DATA"
+		return
+	
+	# ✅ Obtener jugadores
+	var jugadores = Global.get_jugadores()
+	print("📊 Jugadores obtenidos: " + str(jugadores.size()))
+	
+	if jugadores.size() == 0:
+		print("⚠️ No hay jugadores en el JSON")
+		print("   Verificar: DATA/datos_prueba.json")
+		if lbl_nombre:
+			lbl_nombre.text = "SIN NOMBRE"
+		return
+	
+	# Mostrar todos los jugadores para diagnóstico
+	for i in range(jugadores.size()):
+		var j = jugadores[i]
+		print("   " + str(i) + ". " + j.get("nombre", "?") + " → " + str(j.get("color", "")))
+	
+	# Verificar índice
+	if mi_indice_jugador >= jugadores.size():
+		print("⚠️ Índice " + str(mi_indice_jugador) + " fuera de rango. Usando 0.")
+		mi_indice_jugador = 0
+	
+	# Leer el nombre
+	var jugador = jugadores[mi_indice_jugador]
+	var nombre_jugador = jugador.get("nombre", "JUGADOR")
+	var color_jugador = jugador.get("color", "")
+	
+	# Asignar al Label
+	if lbl_nombre:
+		lbl_nombre.text = nombre_jugador
+		print("✅ Nombre asignado: " + nombre_jugador + " (color: " + color_jugador + ")")
+	else:
+		print("❌ No se encontró LBL_NOMBRE")
+		print("   Ruta esperada: VBoxContainer/PNL_SUP/HBoxContainer/Panel2/LBL_NOMBRE")
 
 # ============================================
 # CARGAR AVATARES EN EL MAPA
@@ -133,7 +204,7 @@ func cargar_fila_avatares():
 	print("║     CARGANDO FILA DE AVATARES         ║")
 	print("╚═══════════════════════════════════════╝")
 	
-	# ✅ Ajustar separación (MISMO VALOR en ambos)
+	# Ajustar separación (MISMO VALOR en ambos)
 	fila_nombres.add_theme_constant_override("separation", separacion_fila)
 	fila_avatares.add_theme_constant_override("separation", separacion_fila)
 	
@@ -178,7 +249,6 @@ func cargar_fila_avatares():
 		var avatar = AVATAR_SCENE.instantiate()
 		avatar.name = "FILA_" + nombre
 		avatar.scale = Vector2(escala_avatar_normal, escala_avatar_normal)
-		# Centrar el avatar en el Control
 		avatar.position = tamaño_contenedor_avatar / 2
 		
 		contenedor_avatar.add_child(avatar)
@@ -254,7 +324,6 @@ func siguiente_turno():
 func obtener_obstaculos_habitacion(nombre_habitacion: String) -> Array:
 	var obstaculos = []
 	if nombre_habitacion == "Room15":
-		# obstaculos.append({"id": "cama", "x": 150.0, "y": 100.0})
 		pass
 	return obstaculos
 

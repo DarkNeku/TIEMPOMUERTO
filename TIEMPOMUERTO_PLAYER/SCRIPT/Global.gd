@@ -7,17 +7,22 @@ var jugadores: Array = []
 var nombre_sala: String = ""
 var ip_host: String = ""
 var puerto: int = 12345
+var datos_cargados: bool = false
 
 func _ready():
+	print("=== GLOBAL: Iniciando ===")
+	
 	data_manager = DataManagerScript.new()
 	add_child(data_manager)
 	
-	await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.2).timeout
 	
 	nombre_sala = data_manager.get_sala()
 	ip_host = data_manager.get_ip()
 	puerto = data_manager.get_puerto()
 	jugadores = data_manager.get_jugadores()
+	
+	datos_cargados = true
 	
 	print("=== GLOBAL: Datos cargados ===")
 	print("Sala: " + nombre_sala)
