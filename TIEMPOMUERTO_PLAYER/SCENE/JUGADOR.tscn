@@ -180,3 +180,118 @@ theme_override_icons/icon = ExtResource("2_8vrgc")
 theme_override_styles/normal = SubResource("StyleBoxTexture_et5vb")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_yjmt2")
 theme_override_styles/hover = SubResource("StyleBoxFlat_5ochc")
+
+[node name="VENTANA_CODIGO" type="Panel" parent="." unique_id=1818978014]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorRect" type="ColorRect" parent="VENTANA_CODIGO" unique_id=1635952664]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.003921569)
+
+[node name="LBL_TITULO" type="Label" parent="VENTANA_CODIGO" unique_id=518666054]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -135.5
+offset_right = 135.5
+offset_bottom = 71.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 24
+text = "INGRESE EL CODIGO DE
+LA HABITACION"
+horizontal_alignment = 1
+
+[node name="LBL_INSTRUCCION" type="Label" parent="VENTANA_CODIGO" unique_id=1260273999]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -10.0
+offset_right = 20.0
+offset_bottom = 25.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 25
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TXT_CODIGO" type="LineEdit" parent="VENTANA_CODIGO" unique_id=2054787944]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -50.0
+offset_top = -70.0
+offset_right = 50.0
+offset_bottom = -28.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 40
+placeholder_text = "01 A 34"
+alignment = 1
+max_length = 2
+virtual_keyboard_type = 2
+
+[node name="LBL_ERROR" type="Label" parent="VENTANA_CODIGO" unique_id=1186434434]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = 30.0
+offset_right = 20.0
+offset_bottom = 65.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 25
+horizontal_alignment = 1
+
+[node name="BTN_OK" type="Button" parent="VENTANA_CODIGO" unique_id=2002123643]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -57.0
+offset_right = 187.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 35
+text = "OK"
+
+[node name="BTN_CANCELAR" type="Button" parent="VENTANA_CODIGO" unique_id=1324932634]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -187.0
+offset_top = -57.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 35
+text = "CANCELAR"
