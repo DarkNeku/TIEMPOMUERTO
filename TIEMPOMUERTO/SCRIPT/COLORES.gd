@@ -6,36 +6,6 @@ var color_seleccionado = ""
 var listo = false
 var timer_espera = Timer.new()
 
-func _ready():
-	avatar_node.visible = false
-	
-	if avatar_sprite == null:
-		print("❌ ERROR: No se encontró AnimatedSprite2D")
-		return
-	
-	print("📋 Animaciones disponibles:")
-	for anim in avatar_sprite.sprite_frames.get_animation_names():
-		print("  • " + anim)
-	
-	timer_espera.wait_time = 3.0
-	timer_espera.one_shot = true
-	timer_espera.timeout.connect(_reproducir_animacion_nuevamente)
-	add_child(timer_espera)
-	
-	avatar_sprite.animation_finished.connect(_on_animacion_terminada)
-	
-	$Panel/VBoxContainer/HBoxContainer/BTN_ROJO.pressed.connect(_on_btn_color_pressed.bind("ROJO"))
-	$Panel/VBoxContainer/HBoxContainer/BTN_AZUL.pressed.connect(_on_btn_color_pressed.bind("AZUL"))
-	$Panel/VBoxContainer/HBoxContainer/BTN_AMARILLO.pressed.connect(_on_btn_color_pressed.bind("AMARILLO"))
-	$Panel/VBoxContainer/HBoxContainer/BTN_MORADO.pressed.connect(_on_btn_color_pressed.bind("MORADO"))
-	
-	$Panel/VBoxContainer/HBoxContainer2/BTN_CAFE.pressed.connect(_on_btn_color_pressed.bind("CAFE"))
-	$Panel/VBoxContainer/HBoxContainer2/BTN_ROSADO.pressed.connect(_on_btn_color_pressed.bind("ROSADO"))
-	$Panel/VBoxContainer/HBoxContainer2/BTN_VERDE.pressed.connect(_on_btn_color_pressed.bind("VERDE"))
-	$Panel/VBoxContainer/HBoxContainer2/BTN_GRIS.pressed.connect(_on_btn_color_pressed.bind("GRIS"))
-	
-	$Panel/BTN_LISTO.pressed.connect(_on_btn_listo_pressed)
-
 func _on_btn_color_pressed(color: String):
 	if listo:
 		print("⚠️ Ya seleccionaste un color.")

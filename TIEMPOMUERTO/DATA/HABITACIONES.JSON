@@ -1,0 +1,17 @@
+{
+	"configuracion_general": {
+		"tamaño_habitacion": {"ancho": 512, "alto": 512},
+		"posiciones_puertas": {
+			"arriba":    {"x": 256, "y": 50},
+			"abajo":     {"x": 256, "y": 476},
+			"izquierda": {"x": 55,  "y": 256},
+			"derecha":   {"x": 462, "y": 270}
+		}
+	},
+	"habitaciones": {
+		"Room00": {
+			"nombre": "Lobby",
+			"puertas_iniciales": ["arriba", "abajo", "izquierda", "derecha"]
+		}
+	}
+}

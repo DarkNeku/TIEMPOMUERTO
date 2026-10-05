@@ -2,10 +2,13 @@
 
 [ext_resource type="Script" uid="uid://c1v83rybw07pb" path="res://SCRIPT/PC.gd" id="1_ayikv"]
 
-[node name="Node2D" type="Node2D" unique_id=648137238]
+[node name="PC" type="Control" unique_id=1786008705]
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("1_ayikv")
 
 [node name="Panel" type="Panel" parent="." unique_id=1338868905]
+layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0

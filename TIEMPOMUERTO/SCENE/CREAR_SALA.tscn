@@ -1,47 +1,120 @@
-[gd_scene load_steps=2 format=3 uid="uid://7mxxcr3jvooo"]
+[gd_scene format=3 uid="uid://7mxxcr3jvooo"]
 
 [ext_resource type="Script" uid="uid://qvbffjinnqxn" path="res://SCRIPT/CREAR_SALA.gd" id="1_q1uwv"]
 
-[node name="Node2D" type="Node2D"]
+[sub_resource type="Theme" id="Theme_q1uwv"]
+default_font_size = 30
+
+[node name="CREAR_SALA" type="Control" unique_id=1035957947]
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("1_q1uwv")
 
-[node name="Panel" type="Panel" parent="."]
+[node name="Panel" type="Panel" parent="." unique_id=1997008097]
+layout_mode = 0
 offset_right = 1280.0
 offset_bottom = 720.0
 
-[node name="BTN_CREAR_SALA" type="Button" parent="Panel"]
+[node name="BTN_CREAR_SALA" type="Button" parent="Panel" unique_id=542452183]
 layout_mode = 0
-offset_left = 590.0
-offset_top = 364.0
-offset_right = 946.0
-offset_bottom = 455.0
+offset_left = 464.0
+offset_top = 430.0
+offset_right = 821.0
+offset_bottom = 521.0
 theme_override_font_sizes/font_size = 60
 text = "CREAR SALA
 "
 
-[node name="BTN_VOLVER" type="Button" parent="Panel"]
+[node name="BTN_VOLVER" type="Button" parent="Panel" unique_id=1601491074]
 layout_mode = 0
-offset_left = 632.0
-offset_top = 513.0
-offset_right = 866.0
-offset_bottom = 604.0
+offset_left = 532.0
+offset_top = 554.0
+offset_right = 766.0
+offset_bottom = 645.0
 theme_override_font_sizes/font_size = 60
 text = "VOLVER"
 
-[node name="TXT_SALA" type="TextEdit" parent="Panel"]
-layout_mode = 0
-offset_left = 511.0
-offset_top = 288.0
-offset_right = 1018.0
-offset_bottom = 349.0
+[node name="TXT_SALA" type="TextEdit" parent="Panel" unique_id=892073605]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -228.0
+offset_top = -301.0
+offset_right = 279.0
+offset_bottom = -240.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_font_sizes/font_size = 31
 placeholder_text = "NOMBRE DE LA SALA"
 
-[node name="TXT_NOMBRE" type="TextEdit" parent="Panel"]
-layout_mode = 0
-offset_left = 373.0
-offset_top = 86.0
-offset_right = 1118.0
-offset_bottom = 163.0
-theme_override_font_sizes/font_size = 35
-placeholder_text = "ESCRIBE TU NOMBRE SE USUARIO AQUI"
+[node name="CANT_JUGADORES" type="SpinBox" parent="Panel" unique_id=228856409]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -144.0
+offset_top = -179.0
+offset_right = 41.0
+offset_bottom = -129.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_q1uwv")
+min_value = 1.0
+max_value = 6.0
+value = 1.0
+
+[node name="CANT_TIEMPO" type="SpinBox" parent="Panel" unique_id=542315364]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -144.0
+offset_top = -75.0
+offset_right = 41.0
+offset_bottom = -25.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Theme_q1uwv")
+min_value = 60.0
+max_value = 120.0
+step = 30.0
+value = 60.0
+
+[node name="LBL_CANT_JUGADORES" type="Label" parent="Panel" unique_id=1533956094]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -603.0
+offset_top = -176.0
+offset_right = -225.0
+offset_bottom = -134.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 30
+text = "CANTIDAD DE JUGADORES"
+
+[node name="LBL_TIEMPO_DE_JUEGO" type="Label" parent="Panel" unique_id=321311647]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -594.0
+offset_top = -69.0
+offset_right = -216.0
+offset_bottom = -27.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 30
+text = "TIEMPO DE JUEGO"

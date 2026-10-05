@@ -1,30 +1,53 @@
 extends Node
 
-const RUTA_DATOS = "user://datos_prueba.json"
+const RUTA_LECTURA = "res://DATA/datos_prueba.json"
+const RUTA_ESCRITURA = "user://datos_prueba.json"
+
 var datos_actuales: Dictionary = {}
 
 func _ready():
 	cargar_datos()
 
 func cargar_datos() -> bool:
-	if FileAccess.file_exists(RUTA_DATOS):
-		var archivo = FileAccess.open(RUTA_DATOS, FileAccess.READ)
+	print("=== DataManager: Cargando datos ===")
+	
+	# PRIORIDAD 1: Leer desde res://
+	if FileAccess.file_exists(RUTA_LECTURA):
+		var archivo = FileAccess.open(RUTA_LECTURA, FileAccess.READ)
 		if archivo:
 			var contenido = archivo.get_as_text()
 			archivo.close()
 			var datos = JSON.parse_string(contenido)
 			if datos:
 				datos_actuales = datos
-				print("✅ Datos cargados desde user://")
+				print("✅ Datos cargados desde res://")
+				
+				var jugadores = datos_actuales.get("jugadores", [])
+				print("   Jugadores: " + str(jugadores.size()))
+				for j in jugadores:
+					print("   • " + j.get("nombre", "?") + " → color: '" + str(j.get("color", "")) + "'")
+				
+				guardar_datos()
 				return true
 	
-	print("⚠️ No hay datos en user://, creando por defecto")
+	# PRIORIDAD 2: Leer desde user://
+	if FileAccess.file_exists(RUTA_ESCRITURA):
+		var archivo = FileAccess.open(RUTA_ESCRITURA, FileAccess.READ)
+		if archivo:
+			var contenido = archivo.get_as_text()
+			archivo.close()
+			var datos = JSON.parse_string(contenido)
+			if datos:
+				datos_actuales = datos
+				print("⚠️ Datos cargados desde user://")
+				return true
+	
+	print("❌ No se encontraron datos. Creando por defecto...")
 	crear_datos_por_defecto()
-	guardar_datos()
-	return true
+	return false
 
 func guardar_datos() -> bool:
-	var archivo = FileAccess.open(RUTA_DATOS, FileAccess.WRITE)
+	var archivo = FileAccess.open(RUTA_ESCRITURA, FileAccess.WRITE)
 	if archivo:
 		archivo.store_string(JSON.stringify(datos_actuales, "\t"))
 		archivo.close()
@@ -35,66 +58,94 @@ func guardar_datos() -> bool:
 func crear_datos_por_defecto():
 	datos_actuales = {
 		"sala": "SALA 1",
-		# "" = todavía no conocemos el host: se busca solo en la red local.
-		# No escribir IPs a mano: cambian según el router y rompen la conexión.
 		"ip_host": "",
 		"puerto": 12345,
+		"cant_jugadores": 2,
+		"tiempo_juego": 60,
 		"jugadores": [
-			{"nombre": "JOSE", "color": "", "avatar": "", "conectado": false},
-			{"nombre": "JENNY", "color": "", "avatar": "", "conectado": false},
-			{"nombre": "ALE", "color": "", "avatar": "", "conectado": false},
-			{"nombre": "FRAN", "color": "", "avatar": "", "conectado": false},
-			{"nombre": "CRIS", "color": "", "avatar": "", "conectado": false}
+			{"nombre": "JOSE", "color": "VERDE", "avatar": "", "conectado": false},
+			{"nombre": "JENNY", "color": "AZUL", "avatar": "", "conectado": false},
+			{"nombre": "ALE", "color": "AMARILLO", "avatar": "", "conectado": false},
+			{"nombre": "FRAN", "color": "ROJO", "avatar": "", "conectado": false},
+			{"nombre": "CRIS", "color": "GRIS", "avatar": "", "conectado": false}
 		]
 	}
+	guardar_datos()
 
+# ============================================
+# GETTERS
+# ============================================
 func get_sala() -> String:
 	return datos_actuales.get("sala", "SALA 1")
 
 func get_ip() -> String:
-	# "" = el host todavía no se conoce; se busca por la red local.
 	return datos_actuales.get("ip_host", "")
-
-## Guarda la IP del host que sí funcionó, como pista para la próxima vez.
-func actualizar_ip_host(nueva_ip: String) -> void:
-	datos_actuales["ip_host"] = nueva_ip
-	guardar_datos()
-	print("✅ IP del host guardada: " + nueva_ip)
 
 func get_puerto() -> int:
 	return datos_actuales.get("puerto", 12345)
 
+func get_cant_jugadores() -> int:
+	return datos_actuales.get("cant_jugadores", 2)
+
+func get_tiempo_juego() -> int:
+	return datos_actuales.get("tiempo_juego", 60)
+
 func get_jugadores() -> Array:
 	return datos_actuales.get("jugadores", [])
 
-# ============================================
-# FUNCIONES PARA ACTUALIZAR DATOS
-# ============================================
+func get_jugador_por_nombre(nombre: String) -> Dictionary:
+	for jugador in get_jugadores():
+		if jugador.get("nombre", "") == nombre:
+			return jugador
+	return {}
 
+# ============================================
+# GUARDAR DATOS DE SALA (CANTIDAD Y TIEMPO)
+# ============================================
+func guardar_datos_sala(nombre_sala: String, cant_jugadores: int, tiempo_juego: int) -> bool:
+	datos_actuales["sala"] = nombre_sala
+	datos_actuales["cant_jugadores"] = cant_jugadores
+	datos_actuales["tiempo_juego"] = tiempo_juego
+	guardar_datos()
+	
+	print("")
+	print("💾 Datos de sala guardados:")
+	print("   Sala: " + nombre_sala)
+	print("   Cantidad jugadores: " + str(cant_jugadores))
+	print("   Tiempo de juego: " + str(tiempo_juego) + " min")
+	
+	return true
+
+# ============================================
+# ACTUALIZAR DATOS
+# ============================================
 func actualizar_color_jugador(nombre: String, nuevo_color: String) -> bool:
-	for i in range(datos_actuales.jugadores.size()):
-		if datos_actuales.jugadores[i].nombre == nombre:
-			datos_actuales.jugadores[i].color = nuevo_color
+	var jugadores = datos_actuales.get("jugadores", [])
+	for i in range(jugadores.size()):
+		if jugadores[i].get("nombre", "") == nombre:
+			jugadores[i]["color"] = nuevo_color
 			guardar_datos()
-			print("✅ Color actualizado para " + nombre + ": " + nuevo_color)
 			return true
-	print("❌ No se encontró al jugador: " + nombre)
 	return false
 
 func actualizar_avatar_jugador(nombre: String, nuevo_avatar: String) -> bool:
-	for i in range(datos_actuales.jugadores.size()):
-		if datos_actuales.jugadores[i].nombre == nombre:
-			datos_actuales.jugadores[i].avatar = nuevo_avatar
+	var jugadores = datos_actuales.get("jugadores", [])
+	for i in range(jugadores.size()):
+		if jugadores[i].get("nombre", "") == nombre:
+			jugadores[i]["avatar"] = nuevo_avatar
 			guardar_datos()
-			print("✅ Avatar actualizado para " + nombre + ": " + nuevo_avatar)
 			return true
 	return false
 
 func actualizar_conexion_jugador(nombre: String, estado: bool) -> bool:
-	for i in range(datos_actuales.jugadores.size()):
-		if datos_actuales.jugadores[i].nombre == nombre:
-			datos_actuales.jugadores[i].conectado = estado
+	var jugadores = datos_actuales.get("jugadores", [])
+	for i in range(jugadores.size()):
+		if jugadores[i].get("nombre", "") == nombre:
+			jugadores[i]["conectado"] = estado
 			guardar_datos()
-			print("✅ Conexión actualizada para " + nombre + ": " + str(estado))
 			return true
 	return false
+
+func actualizar_ip_host(nueva_ip: String) -> void:
+	datos_actuales["ip_host"] = nueva_ip
+	guardar_datos()
