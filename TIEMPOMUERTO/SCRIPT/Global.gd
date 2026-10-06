@@ -19,12 +19,7 @@ func _ready():
 	
 	await get_tree().create_timer(0.2).timeout
 	
-	nombre_sala = data_manager.get_sala()
-	ip_host = data_manager.get_ip()
-	puerto = data_manager.get_puerto()
-	cant_jugadores = data_manager.get_cant_jugadores()
-	tiempo_juego = data_manager.get_tiempo_juego()
-	jugadores = data_manager.get_jugadores()
+	cargar_desde_data_manager()
 	
 	datos_cargados = true
 	
@@ -33,6 +28,36 @@ func _ready():
 	print("Jugadores máx: " + str(cant_jugadores))
 	print("Tiempo: " + str(tiempo_juego) + " min")
 	print("Jugadores en JSON: " + str(jugadores.size()))
+
+func cargar_desde_data_manager():
+	if not data_manager:
+		return
+	
+	nombre_sala = data_manager.get_sala()
+	ip_host = data_manager.get_ip()
+	puerto = data_manager.get_puerto()
+	cant_jugadores = data_manager.get_cant_jugadores()
+	tiempo_juego = data_manager.get_tiempo_juego()
+	jugadores = data_manager.get_jugadores()
+
+# ============================================
+# NUEVA PARTIDA
+# ============================================
+func nueva_partida(nombre_sala_param: String = "", cant: int = 2, tiempo: int = 60):
+	if data_manager:
+		data_manager.nueva_partida(nombre_sala_param, cant, tiempo)
+		cargar_desde_data_manager()
+		print("✅ Nueva partida iniciada desde Global")
+
+# ============================================
+# ✅ AGREGAR JUGADOR (NORMALIZADO)
+# ============================================
+func agregar_jugador(nombre: String):
+	if data_manager:
+		# Normalizar a MAYÚSCULAS
+		var nombre_normalizado = nombre.strip_edges().to_upper()
+		data_manager.agregar_jugador_partida(nombre_normalizado)
+		jugadores = data_manager.get_jugadores()
 
 # ============================================
 # GETTERS
@@ -58,26 +83,27 @@ func get_tiempo_juego() -> int:
 	return tiempo_juego
 
 # ============================================
-# ACTUALIZAR
+# ✅ ACTUALIZAR COLOR (NORMALIZADO)
 # ============================================
 func actualizar_color_jugador(nombre: String, color: String):
 	if data_manager:
-		data_manager.actualizar_color_jugador(nombre, color)
+		var nombre_normalizado = nombre.strip_edges().to_upper()
+		data_manager.actualizar_color_jugador(nombre_normalizado, color)
 		jugadores = data_manager.get_jugadores()
 
 func actualizar_avatar_jugador(nombre: String, avatar: String):
 	if data_manager:
-		data_manager.actualizar_avatar_jugador(nombre, avatar)
+		var nombre_normalizado = nombre.strip_edges().to_upper()
+		data_manager.actualizar_avatar_jugador(nombre_normalizado, avatar)
 		jugadores = data_manager.get_jugadores()
 
 func actualizar_conexion_jugador(nombre: String, estado: bool):
 	if data_manager:
-		data_manager.actualizar_conexion_jugador(nombre, estado)
+		var nombre_normalizado = nombre.strip_edges().to_upper()
+		data_manager.actualizar_conexion_jugador(nombre_normalizado, estado)
 		jugadores = data_manager.get_jugadores()
 
 func guardar_datos_sala(nombre_sala_param: String, cant: int, tiempo: int):
 	if data_manager:
-		data_manager.guardar_datos_sala(nombre_sala_param, cant, tiempo)
-		nombre_sala = nombre_sala_param
-		cant_jugadores = cant
-		tiempo_juego = tiempo
+		data_manager.nueva_partida(nombre_sala_param, cant, tiempo)
+		cargar_desde_data_manager()

@@ -112,16 +112,22 @@ var posicion_inicial_mouse: Vector2 = Vector2.ZERO
 var offset_inicial_arrastre: Vector2 = Vector2.ZERO
 
 func _ready():
+	print("")
 	print("=== JUGADOR: Iniciando ===")
 	
 	await get_tree().create_timer(0.3).timeout
+	
+	# ✅ Verificar que tenemos jugadores
+	var todos_jugadores = Global.get_jugadores()
+	print("📋 Jugadores recibidos del host: " + str(todos_jugadores.size()))
+	for j in todos_jugadores:
+		print("   • " + j.get("nombre", "?") + " → " + j.get("color", ""))
 	
 	asignar_nombre_jugador()
 	
 	RoomData.agregar_habitacion_colocada("Room00")
 	
 	# ✅ INICIALIZAR POSICIONES DE TODOS LOS JUGADORES EN Room00
-	var todos_jugadores = Global.get_jugadores()
 	RoomData.inicializar_posiciones_jugadores(todos_jugadores, "Room00")
 	RoomData.imprimir_posiciones_jugadores()
 	
@@ -131,8 +137,8 @@ func _ready():
 	
 	cargar_puertas_iniciales("Room00")
 	
-	# ✅ Cargar solo los avatares que están en Room00
-	cargar_avatares_en_habitacion("Room00")
+	# ✅ Cargar avatares de Room00
+	await cargar_avatares_en_habitacion("Room00")
 	cargar_fila_avatares()
 	
 	configurar_ventana_codigo()
@@ -164,6 +170,11 @@ func asignar_nombre_jugador():
 	var jugadores = Global.get_jugadores()
 	
 	if jugadores.size() == 0:
+		# Si no hay jugadores, usar mi nombre guardado
+		var mi_nombre = Global.get_mi_nombre()
+		if mi_nombre != "" and lbl_nombre:
+			lbl_nombre.text = mi_nombre
+			print("✅ Nombre asignado (de mi_nombre): " + mi_nombre)
 		return
 	
 	if mi_indice_jugador >= jugadores.size():
@@ -448,7 +459,7 @@ func procesar_codigo():
 	cambiar_habitacion(nueva_habitacion, direccion_entrada)
 
 # ============================================
-# CAMBIAR DE HABITACIÓN (SOLO EL JUGADOR ACTUAL)
+# ✅ CAMBIAR DE HABITACIÓN (CON PROTECCIÓN)
 # ============================================
 func cambiar_habitacion(nueva_habitacion: String, direccion_entrada: String):
 	print("")
@@ -458,17 +469,24 @@ func cambiar_habitacion(nueva_habitacion: String, direccion_entrada: String):
 	print("   De: " + habitacion_actual)
 	print("   A:  " + nueva_habitacion)
 	
-	# ✅ Obtener el nombre del jugador actual
-	var jugador_actual = Global.get_jugadores()[mi_indice_jugador].get("nombre", "")
+	# ✅ Obtener el nombre del jugador actual (con protección)
+	var jugador_actual = ""
+	var lista_jugadores = Global.get_jugadores()
 	
-	# ✅ Actualizar SOLO la posición del jugador actual
-	RoomData.actualizar_posicion_jugador(jugador_actual, nueva_habitacion)
-	RoomData.imprimir_posiciones_jugadores()
+	if lista_jugadores.size() > 0 and mi_indice_jugador < lista_jugadores.size():
+		jugador_actual = lista_jugadores[mi_indice_jugador].get("nombre", "")
+	else:
+		# Si no hay jugadores, usar mi nombre guardado
+		jugador_actual = Global.get_mi_nombre()
+		print("⚠️ No hay jugadores en la lista, usando mi nombre: " + jugador_actual)
+	
+	if jugador_actual != "":
+		RoomData.actualizar_posicion_jugador(jugador_actual, nueva_habitacion)
+		RoomData.imprimir_posiciones_jugadores()
 	
 	RoomData.agregar_habitacion_colocada(nueva_habitacion)
 	habitacion_actual = nueva_habitacion
 	
-	# Limpiar puertas y fichas
 	for child in capa_puertas.get_children():
 		child.queue_free()
 	for child in capa_fichas.get_children():
@@ -480,10 +498,8 @@ func cambiar_habitacion(nueva_habitacion: String, direccion_entrada: String):
 	await get_tree().process_frame
 	await get_tree().process_frame
 	
-	# ✅ Cargar solo los avatares de la nueva habitación
 	await cargar_avatares_en_habitacion(nueva_habitacion)
 	
-	# ✅ Cargar puertas
 	if RoomData.habitacion_ya_generada(nueva_habitacion):
 		print("📂 Habitación ya visitada")
 		cargar_puertas_guardadas(nueva_habitacion)

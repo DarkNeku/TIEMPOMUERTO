@@ -1,15 +1,5 @@
 extends Node
 
-# =====================================================================
-#  RED — descubre el host solo, sin IPs escritas a mano
-# ---------------------------------------------------------------------
-#  Quien hospeda (CREAR SALA) abre el puerto UDP de descubrimiento y contesta
-#  con MAGIC a quien pregunte. Quien se une (UNIRSE SALA) sondea la red local
-#  —broadcast, broadcast de su propia subred y barrido de su /24— y aprende la
-#  IP del host de la propia respuesta. Así funciona en cualquier PC y en
-#  cualquier red local, sin importar qué IP le dé el router a cada equipo.
-# =====================================================================
-
 const PUERTO_DESCUBRIMIENTO: int = 12344
 const MAGIC: String = "TIEMPOMUERTO/1"
 const PUERTO_JUEGO_DEFECTO: int = 12345
@@ -17,12 +7,12 @@ const MAX_CONEXIONES: int = 6
 
 var salas: Dictionary = {}
 var jugadores: Dictionary = {}
-var datos_salas: Dictionary = {}   # ✅ Datos adicionales (cant_jugadores, tiempo_juego)
+var datos_salas: Dictionary = {}
+var colores_usados: Dictionary = {}
 var peer: MultiplayerPeer = null
 var sala_actual: String = ""
 var conectado: bool = false
 
-# --- sockets del descubrimiento ---
 var _udp_host: PacketPeerUDP = null
 var _udp_busqueda: PacketPeerUDP = null
 var _puerto_juego: int = PUERTO_JUEGO_DEFECTO
@@ -41,7 +31,6 @@ func _process(_delta: float) -> void:
 
 func start_host(port: int = PUERTO_JUEGO_DEFECTO) -> bool:
 	print("=== START_HOST: INICIANDO SERVIDOR ===")
-	
 	desconectar()
 	_puerto_juego = port
 	
@@ -50,7 +39,6 @@ func start_host(port: int = PUERTO_JUEGO_DEFECTO) -> bool:
 	
 	if result != OK:
 		print("=== ERROR: No se pudo crear el servidor - Código: " + str(result))
-		print("=== ¿Hay otra copia del juego ya hospedando en este equipo?")
 		peer = null
 		return false
 	
@@ -60,7 +48,6 @@ func start_host(port: int = PUERTO_JUEGO_DEFECTO) -> bool:
 	print("=== HOST: Servidor iniciado en puerto " + str(port))
 	print("=== HOST: IP local: " + get_local_ip())
 	
-	# Publicar el host para que cualquier cliente lo encuentre solo
 	iniciar_descubrimiento(port)
 	return true
 
@@ -88,9 +75,6 @@ func get_local_ip() -> String:
 			return ip
 	return ips[0] if ips.size() > 0 else "127.0.0.1"
 
-# =====================================================================
-#  DESCUBRIMIENTO AUTOMÁTICO
-# =====================================================================
 func iniciar_descubrimiento(puerto_juego: int = PUERTO_JUEGO_DEFECTO) -> bool:
 	_puerto_juego = puerto_juego
 	detener_descubrimiento()
@@ -121,7 +105,7 @@ func _poll_descubrimiento() -> void:
 		var puerto_origen: int = _udp_host.get_packet_port()
 		_udp_host.set_dest_address(ip_origen, puerto_origen)
 		_udp_host.put_packet((MAGIC + "|" + str(_puerto_juego)).to_utf8_buffer())
-		print("=== HOST: respondo la sonda de " + ip_origen + ":" + str(puerto_origen))
+		print("=== HOST: respondo la sonda de " + ip_origen)
 
 func _on_connected_to_server() -> void:
 	conectado = true
@@ -139,7 +123,7 @@ func _on_server_disconnected() -> void:
 	host_desconectado.emit()
 
 # =====================================================================
-#  SALAS Y JUGADORES
+#  SALAS
 # =====================================================================
 @rpc("any_peer")
 func pedir_salas():
@@ -147,25 +131,18 @@ func pedir_salas():
 	if multiplayer.is_server():
 		var sender_id = multiplayer.get_remote_sender_id()
 		print("HOST: Enviando salas al peer " + str(sender_id))
-		print("HOST: Salas: " + str(salas))
 		sync_salas.rpc_id(sender_id, salas)
-		# ✅ Enviar también los datos de las salas
 		sync_datos_salas.rpc_id(sender_id, datos_salas)
-		print("HOST: Datos de salas enviados: " + str(datos_salas))
-	else:
-		print("No soy host, ignorando")
 
 @rpc("any_peer")
 func sync_salas(salas_dict: Dictionary):
-	print("=== SYNC_SALAS: RECIBIDO ===")
 	salas = salas_dict
 	emit_signal("salas_actualizadas")
 
 @rpc("any_peer")
 func sync_datos_salas(datos_dict: Dictionary):
-	print("=== SYNC_DATOS_SALAS: RECIBIDO ===")
 	datos_salas = datos_dict
-	print("=== SYNC_DATOS_SALAS: Datos: " + str(datos_salas))
+	print("=== SYNC_DATOS_SALAS: " + str(datos_salas))
 
 @rpc("any_peer")
 func unirse_sala(nombre_sala: String, nombre_usuario: String):
@@ -173,28 +150,36 @@ func unirse_sala(nombre_sala: String, nombre_usuario: String):
 	
 	if multiplayer.is_server():
 		if nombre_sala in jugadores:
-			# ✅ Verificar capacidad máxima
 			var cant_max = 6
 			if nombre_sala in datos_salas:
 				cant_max = datos_salas[nombre_sala].get("cant_jugadores", 6)
 			
-			print("=== HOST: Jugadores actuales: " + str(jugadores[nombre_sala].size()) + "/" + str(cant_max))
+			print("HOST: Jugadores: " + str(jugadores[nombre_sala].size()) + "/" + str(cant_max))
+			
+			var nombre_normalizado = nombre_usuario.strip_edges().to_upper()
 			
 			if jugadores[nombre_sala].size() >= cant_max:
 				print("❌ HOST: Sala llena")
 				sala_llena.rpc_id(multiplayer.get_remote_sender_id(), nombre_sala)
 				return
 			
-			if nombre_usuario not in jugadores[nombre_sala]:
-				jugadores[nombre_sala].append(nombre_usuario)
+			var ya_existe = false
+			for j in jugadores[nombre_sala]:
+				if j.to_upper() == nombre_normalizado:
+					ya_existe = true
+					break
+			
+			if not ya_existe:
+				jugadores[nombre_sala].append(nombre_normalizado)
 				print("✅ HOST: Usuario agregado. Jugadores: " + str(jugadores[nombre_sala]))
+				
+				Global.agregar_jugador(nombre_normalizado)
+				
 				sync_jugadores.rpc(jugadores)
 			else:
 				print("HOST: Usuario ya existe")
 		else:
 			print("❌ HOST ERROR: La sala no existe")
-	else:
-		print("CLIENTE: No soy host")
 
 @rpc("any_peer")
 func sala_llena(nombre_sala: String):
@@ -203,32 +188,84 @@ func sala_llena(nombre_sala: String):
 
 @rpc("any_peer")
 func sync_jugadores(jugadores_dict: Dictionary):
-	print("=== SYNC_JUGADORES: RECIBIDO ===")
 	jugadores = jugadores_dict
 	emit_signal("jugadores_actualizados")
 
 @rpc("any_peer")
 func pedir_jugadores(nombre_sala: String):
-	print("=== PEDIR_JUGADORES: SOLICITANDO ===")
 	if multiplayer.is_server():
 		var sender_id = multiplayer.get_remote_sender_id()
 		print("HOST: Enviando jugadores al peer " + str(sender_id))
-		print("HOST: Jugadores: " + str(jugadores))
 		sync_jugadores.rpc_id(sender_id, jugadores)
 
 # =====================================================================
-#  INICIAR JUEGO (del host a los clientes)
+#  INICIAR JUEGO Y PARTIDA
 # =====================================================================
 @rpc("authority")
 func iniciar_juego():
-	print("🎮 ¡El host inició el juego! Pasando a selección de colores...")
+	print("🎨 ¡El host inició la selección de COLORES!")
 	get_tree().change_scene_to_file("res://SCENE/COLORES.tscn")
+
+@rpc("authority")
+func iniciar_partida():
+	print("🎮 ¡El host inició la PARTIDA! Enviando jugadores a clientes...")
+	
+	# ✅ Enviar los jugadores a TODOS los clientes
+	recibir_jugadores_partida.rpc(Global.get_jugadores())
+	print("✅ Lista de jugadores enviada: " + str(Global.get_jugadores()))
+	
+	# Esperar un momento
+	await get_tree().create_timer(0.5).timeout
+	
+	# El PC va al MAPA
+	get_tree().change_scene_to_file("res://SCENE/PC.tscn")
+
+# =====================================================================
+#  RECIBIR JUGADORES (el host no recibe, solo envía)
+# =====================================================================
+@rpc("authority")
+func recibir_jugadores_partida(_jugadores_array: Array):
+	# El host no recibe, solo envía
+	pass
+
+# =====================================================================
+#  COLORES DE JUGADORES
+# =====================================================================
+@rpc("any_peer")
+func enviar_color_jugador(nombre: String, color: String):
+	var nombre_normalizado = nombre.strip_edges().to_upper()
+	
+	print("🎨 Color confirmado en HOST: " + nombre_normalizado + " → " + color)
+	
+	if multiplayer.is_server():
+		if color in colores_usados:
+			var jugador_con_ese_color = colores_usados[color]
+			if jugador_con_ese_color != nombre_normalizado:
+				print("❌ El color " + color + " ya está en uso por " + jugador_con_ese_color)
+				color_ya_usado.rpc_id(multiplayer.get_remote_sender_id(), color, jugador_con_ese_color)
+				return
+		
+		colores_usados[color] = nombre_normalizado
+		Global.actualizar_color_jugador(nombre_normalizado, color)
+		
+		sync_colores.rpc(nombre_normalizado, color)
+		colores_actualizados.emit(nombre_normalizado, color)
+
+@rpc("any_peer")
+func sync_colores(nombre: String, color: String):
+	print("🎨 Sync color: " + nombre + " → " + color)
+	colores_usados[color] = nombre
+	colores_actualizados.emit(nombre, color)
+
+@rpc("any_peer")
+func color_ya_usado(color: String, jugador_que_lo_tiene: String):
+	print("❌ El color " + color + " ya está en uso por " + jugador_que_lo_tiene)
+	color_ya_usado_signal.emit(color, jugador_que_lo_tiene)
 
 # =====================================================================
 #  GETTERS
 # =====================================================================
 func get_salas() -> Array:
-	print("GET_SALAS: Retornando " + str(salas.keys()))
 	return salas.keys()
 
 func get_jugadores(nombre_sala: String) -> Array:
@@ -257,3 +294,5 @@ signal conexion_establecida
 signal conexion_fallida
 signal host_desconectado
 signal sala_llena_signal
+signal colores_actualizados(nombre, color)
+signal color_ya_usado_signal(color, jugador)

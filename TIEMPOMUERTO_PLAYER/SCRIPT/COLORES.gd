@@ -7,15 +7,15 @@ var listo = false
 var timer_espera = Timer.new()
 
 func _ready():
+	print("")
+	print("=== COLORES (CELULAR): Iniciando ===")
+	print("Mi nombre: " + Global.get_mi_nombre())
+	
 	avatar_node.visible = false
 	
 	if avatar_sprite == null:
 		print("❌ ERROR: No se encontró AnimatedSprite2D")
 		return
-	
-	print("📋 Animaciones disponibles:")
-	for anim in avatar_sprite.sprite_frames.get_animation_names():
-		print("  • " + anim)
 	
 	timer_espera.wait_time = 3.0
 	timer_espera.one_shot = true
@@ -24,6 +24,11 @@ func _ready():
 	
 	avatar_sprite.animation_finished.connect(_on_animacion_terminada)
 	
+	# Conectar señales de red
+	Network.connect("colores_actualizados", Callable(self, "_on_color_actualizado"))
+	Network.connect("color_ya_usado_signal", Callable(self, "_on_color_ya_usado"))
+	
+	# Conectar botones
 	$Panel/VBoxContainer/HBoxContainer/BTN_ROJO.pressed.connect(_on_btn_color_pressed.bind("ROJO"))
 	$Panel/VBoxContainer/HBoxContainer/BTN_AZUL.pressed.connect(_on_btn_color_pressed.bind("AZUL"))
 	$Panel/VBoxContainer/HBoxContainer/BTN_AMARILLO.pressed.connect(_on_btn_color_pressed.bind("AMARILLO"))
@@ -35,11 +40,38 @@ func _ready():
 	$Panel/VBoxContainer/HBoxContainer2/BTN_GRIS.pressed.connect(_on_btn_color_pressed.bind("GRIS"))
 	
 	$Panel/BTN_LISTO.pressed.connect(_on_btn_listo_pressed)
+	
+	cargar_colores_ya_usados()
 
+func cargar_colores_ya_usados():
+	var jugadores = Global.get_jugadores()
+	
+	for jugador in jugadores:
+		var nombre = jugador.get("nombre", "")
+		var color = jugador.get("color", "")
+		
+		if color != "":
+			Network.colores_usados[color] = nombre
+			bloquear_boton_color(color, nombre)
+			
+			if nombre == Global.get_mi_nombre():
+				color_seleccionado = color
+				listo = true
+				desactivar_botones_colores()
+
+# ============================================
+# AL PRESIONAR UN COLOR (solo previsualiza)
+# ============================================
 func _on_btn_color_pressed(color: String):
 	if listo:
-		print("⚠️ Ya seleccionaste un color.")
+		print("⚠️ Ya confirmaste un color.")
 		return
+	
+	if color in Network.colores_usados:
+		var jugador_con_ese_color = Network.colores_usados[color]
+		if jugador_con_ese_color != Global.get_mi_nombre():
+			print("❌ El color " + color + " ya está en uso por " + jugador_con_ese_color)
+			return
 	
 	color_seleccionado = color
 	avatar_node.visible = true
@@ -54,16 +86,11 @@ func _on_btn_color_pressed(color: String):
 	avatar_sprite.play()
 	avatar_sprite.speed_scale = 1.0
 	
-	print("🎨 Avatar cambiado a: " + color)
+	print("🎨 Color SELECCIONADO (sin confirmar): " + color)
 
-func _on_animacion_terminada():
-	# ✅ SIEMPRE reiniciar la animación, incluso después de LISTO
-	timer_espera.start()
-
-func _reproducir_animacion_nuevamente():
-	# ✅ SIEMPRE reproducir, incluso después de LISTO
-	avatar_sprite.play()
-
+# ============================================
+# AL PRESIONAR LISTO (aquí SÍ se bloquea)
+# ============================================
 func _on_btn_listo_pressed():
 	if color_seleccionado == "":
 		print("⚠️ Selecciona un color primero")
@@ -73,29 +100,85 @@ func _on_btn_listo_pressed():
 		print("ℹ️ Ya estás listo. Color: " + color_seleccionado)
 		return
 	
+	if color_seleccionado in Network.colores_usados:
+		var jugador_con_ese_color = Network.colores_usados[color_seleccionado]
+		if jugador_con_ese_color != Global.get_mi_nombre():
+			print("❌ El color " + color_seleccionado + " ya está en uso por " + jugador_con_ese_color)
+			return
+	
 	listo = true
-	colocar_sello_sobre_boton(color_seleccionado)
+	
+	# ENVIAR COLOR AL HOST
+	enviar_color_al_host(color_seleccionado)
+	
+	# Bloquear todos los botones en este celular
 	desactivar_botones_colores()
+	colocar_sello_sobre_boton(color_seleccionado)
 	
-	# ✅ La animación sigue reproduciéndose automáticamente
-	# ✅ No detenemos nada
+	print("✅ ¡LISTO! Color confirmado: " + color_seleccionado)
+
+# ============================================
+# ENVIAR COLOR AL HOST
+# ============================================
+func enviar_color_al_host(color: String):
+	var mi_nombre = Global.get_mi_nombre()
 	
-	print("✅ ¡LISTO! Color seleccionado: " + color_seleccionado)
+	if mi_nombre == "":
+		print("❌ ERROR: No sé quién soy.")
+		return
+	
+	print("📤 Confirmando color al host: " + mi_nombre + " → " + color)
+	Network.colores_usados[color] = mi_nombre
+	Network.enviar_mi_color(mi_nombre, color)
+
+# ============================================
+# CUANDO OTRO JUGADOR CONFIRMA SU COLOR
+# ============================================
+func _on_color_actualizado(nombre: String, color: String):
+	print("🎨 Color confirmado por otro: " + nombre + " → " + color)
+	
+	if nombre != Global.get_mi_nombre():
+		bloquear_boton_color(color, nombre)
+
+func _on_color_ya_usado(color: String, jugador_que_lo_tiene: String):
+	print("❌ El color " + color + " ya está en uso por " + jugador_que_lo_tiene)
+
+# ============================================
+# BLOQUEAR UN BOTÓN CON SELLO
+# ============================================
+func bloquear_boton_color(color: String, nombre_jugador: String):
+	var boton = get_boton_por_color(color)
+	if not boton:
+		return
+	
+	for child in boton.get_children():
+		if child is Sprite2D and child.name == "SELLO":
+			return
+	
+	var sello = Sprite2D.new()
+	sello.name = "SELLO"
+	sello.texture = load("res://ASSET/Avatars/NO DISPONIBLE.png")
+	
+	var tamaño = boton.size
+	sello.position = Vector2(tamaño.x / 2, tamaño.y / 2)
+	sello.scale = Vector2(0.35, 0.35)
+	
+	boton.add_child(sello)
+	boton.disabled = true
+	
+	print("📍 Sello colocado en " + color + " (usado por " + nombre_jugador + ")")
+
+# ============================================
+# OTROS
+# ============================================
+func _on_animacion_terminada():
+	timer_espera.start()
+
+func _reproducir_animacion_nuevamente():
+	avatar_sprite.play()
 
 func colocar_sello_sobre_boton(color: String):
-	var boton = get_boton_por_color(color)
-	if boton:
-		var sello = Sprite2D.new()
-		sello.texture = load("res://ASSET/Avatars/NO DISPONIBLE.png")
-		
-		var tamaño = boton.size
-		sello.position = Vector2(tamaño.x / 2, tamaño.y / 2)
-		sello.scale = Vector2(0.35, 0.35)
-		
-		boton.add_child(sello)
-		boton.disabled = true
-		
-		print("📍 Sello centrado en " + color)
+	bloquear_boton_color(color, Global.get_mi_nombre())
 
 func get_boton_por_color(color: String):
 	match color:

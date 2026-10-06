@@ -74,7 +74,7 @@ bg_color = Color(0.396078, 0.396078, 0.396078, 1)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tjn28"]
 bg_color = Color(0.396078, 0.396078, 0.396078, 1)
 
-[node name="COLORES" type="Control" unique_id=2064086751]
+[node name="COLORES" type="Control" unique_id=60932220]
 layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_qgql2")

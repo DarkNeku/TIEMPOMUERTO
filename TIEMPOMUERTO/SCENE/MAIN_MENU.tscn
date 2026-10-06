@@ -2,10 +2,13 @@
 
 [ext_resource type="Script" uid="uid://c0vjw6x2x80ey" path="res://SCRIPT/MAIN_MENU.gd" id="1_u6qdw"]
 
-[node name="Node2D" type="Node2D" unique_id=1740983554]
+[node name="MAIN_MENU" type="Control" unique_id=1239563344]
+layout_mode = 3
+anchors_preset = 0
 script = ExtResource("1_u6qdw")
 
 [node name="Panel" type="Panel" parent="." unique_id=412442348]
+layout_mode = 0
 offset_left = 1.0
 offset_top = 2.0
 offset_right = 1281.0

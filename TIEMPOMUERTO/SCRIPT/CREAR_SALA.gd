@@ -1,4 +1,4 @@
-extends Control
+extends Node2D
 
 func _ready():
 	# Conectar botones
@@ -12,7 +12,6 @@ func _ready():
 		spin_jugadores.max_value = 6
 		spin_jugadores.value = 2
 		spin_jugadores.step = 1
-		# Conectar señal de cambio de valor
 		if not spin_jugadores.value_changed.is_connected(_on_cant_jugadores_changed):
 			spin_jugadores.value_changed.connect(_on_cant_jugadores_changed)
 	
@@ -22,12 +21,10 @@ func _ready():
 		spin_tiempo.min_value = 60
 		spin_tiempo.max_value = 120
 		spin_tiempo.value = 60
-		spin_tiempo.step = 30  # 60, 90, 120
-		# Conectar señal
+		spin_tiempo.step = 30
 		if not spin_tiempo.value_changed.is_connected(_on_tiempo_changed):
 			spin_tiempo.value_changed.connect(_on_tiempo_changed)
 	
-	# Actualizar labels iniciales
 	actualizar_labels()
 
 func _on_cant_jugadores_changed(valor: float):
@@ -51,7 +48,6 @@ func on_btn_crear_sala_pressed():
 	var cant_jugadores = int($Panel/CANT_JUGADORES.value)
 	var tiempo_juego = int($Panel/CANT_TIEMPO.value)
 	
-	# Validar
 	if nombre_sala == "":
 		print("❌ ERROR: Debes ingresar un nombre de sala")
 		return
@@ -64,14 +60,16 @@ func on_btn_crear_sala_pressed():
 	print("   Cant. jugadores: " + str(cant_jugadores))
 	print("   Tiempo: " + str(tiempo_juego) + " min")
 	
-	# ✅ GUARDAR DATOS EN EL JSON
-	Global.guardar_datos_sala(nombre_sala, cant_jugadores, tiempo_juego)
+	# ✅ CREAR NUEVA PARTIDA DESDE CERO
+	Global.nueva_partida(nombre_sala, cant_jugadores, tiempo_juego)
 	
 	if Network.start_host():
+		# ✅ Inicializar sala Y jugadores
 		Network.salas[nombre_sala] = []
+		Network.jugadores[nombre_sala] = []
 		Network.sala_actual = nombre_sala
 		
-		# ✅ Guardar datos adicionales de la sala en memoria
+		# ✅ Guardar datos adicionales
 		Network.datos_salas[nombre_sala] = {
 			"cant_jugadores": cant_jugadores,
 			"tiempo_juego": tiempo_juego,
@@ -79,13 +77,12 @@ func on_btn_crear_sala_pressed():
 		}
 		
 		print("✅ SALA CREADA EXITOSAMENTE")
-		print("   Salas disponibles: " + str(Network.salas.keys()))
-		print("   Datos de sala: " + str(Network.datos_salas[nombre_sala]))
+		print("   Salas: " + str(Network.salas.keys()))
+		print("   Jugadores (vacío): " + str(Network.jugadores))
 		
-		# Sincronizar con todos los peers
+		# Sincronizar
 		Network.sync_salas.rpc(Network.salas)
 		Network.sync_datos_salas.rpc(Network.datos_salas)
-		print("✅ Sincronización enviada a todos los peers")
 		
 		get_tree().change_scene_to_file("res://SCENE/LOBBY.tscn")
 	else:
