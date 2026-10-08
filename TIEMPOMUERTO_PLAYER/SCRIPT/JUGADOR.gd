@@ -111,26 +111,37 @@ var arrastrando: bool = false
 var posicion_inicial_mouse: Vector2 = Vector2.ZERO
 var offset_inicial_arrastre: Vector2 = Vector2.ZERO
 
-# ✅ NUEVO: Iniciar esperando los jugadores del host
+# ============================================
+# ✅ READY: pedir jugadores explícitamente si no llegaron
+# ============================================
 func _ready():
 	print("")
 	print("=== JUGADOR: Iniciando ===")
 	
-	# ✅ ESPERAR a que llegue la lista de jugadores del host por RPC
-	var intentos = 0
-	while Global.get_jugadores().size() == 0 and intentos < 30:
-		print("⏳ Esperando lista de jugadores... (intento " + str(intentos + 1) + "/30)")
-		await get_tree().create_timer(0.2).timeout
-		intentos += 1
+	# ✅ 1) Esperar un momento para que llegue el RPC automático
+	await get_tree().create_timer(0.5).timeout
 	
+	# ✅ 2) Si NO llegaron jugadores, PEDIRLOS explícitamente al host
 	if Global.get_jugadores().size() == 0:
-		print("❌ ERROR: No llegaron jugadores del host. Usando datos locales.")
+		print("⚠️ No llegaron jugadores por RPC. Pidiéndolos al host...")
+		Network.pedir_jugadores_partida()
+		
+		# ✅ 3) Esperar la respuesta (hasta 5 segundos)
+		var intentos = 0
+		while Global.get_jugadores().size() == 0 and intentos < 25:
+			await get_tree().create_timer(0.2).timeout
+			intentos += 1
+		
+		if Global.get_jugadores().size() == 0:
+			print("❌ ERROR: El host no respondió con jugadores.")
+		else:
+			print("✅ Jugadores recibidos tras pedirlos: " + str(Global.get_jugadores().size()))
 	else:
-		print("✅ Jugadores recibidos del host: " + str(Global.get_jugadores().size()))
+		print("✅ Jugadores recibidos por RPC automático: " + str(Global.get_jugadores().size()))
 	
 	# ✅ Verificar que tenemos jugadores
 	var todos_jugadores = Global.get_jugadores()
-	print("📋 Jugadores recibidos del host: " + str(todos_jugadores.size()))
+	print("📋 Jugadores finales: " + str(todos_jugadores.size()))
 	for j in todos_jugadores:
 		print("   • " + j.get("nombre", "?") + " → " + j.get("color", ""))
 	
@@ -195,7 +206,6 @@ func asignar_nombre_jugador():
 	var jugadores = Global.get_jugadores()
 	
 	if jugadores.size() == 0:
-		# Si no hay jugadores, usar mi nombre guardado
 		var mi_nombre = Global.get_mi_nombre()
 		if mi_nombre != "" and lbl_nombre:
 			lbl_nombre.text = mi_nombre
@@ -484,7 +494,7 @@ func procesar_codigo():
 	cambiar_habitacion(nueva_habitacion, direccion_entrada)
 
 # ============================================
-# CAMBIAR DE HABITACIÓN (CON PROTECCIÓN)
+# CAMBIAR DE HABITACIÓN
 # ============================================
 func cambiar_habitacion(nueva_habitacion: String, direccion_entrada: String):
 	print("")
@@ -494,14 +504,12 @@ func cambiar_habitacion(nueva_habitacion: String, direccion_entrada: String):
 	print("   De: " + habitacion_actual)
 	print("   A:  " + nueva_habitacion)
 	
-	# ✅ Obtener el nombre del jugador actual (con protección)
 	var jugador_actual = ""
 	var lista_jugadores = Global.get_jugadores()
 	
 	if lista_jugadores.size() > 0 and mi_indice_jugador < lista_jugadores.size():
 		jugador_actual = lista_jugadores[mi_indice_jugador].get("nombre", "")
 	else:
-		# Si no hay jugadores, usar mi nombre guardado
 		jugador_actual = Global.get_mi_nombre()
 		print("⚠️ No hay jugadores en la lista, usando mi nombre: " + jugador_actual)
 	

@@ -223,15 +223,12 @@ func iniciar_juego():
 	print("🎨 ¡El host inició la selección de COLORES!")
 	get_tree().change_scene_to_file("res://SCENE/COLORES.tscn")
 
-# ✅ NUEVO: esperar más para asegurar que llegó recibir_jugadores_partida
 @rpc("authority")
 func iniciar_partida():
 	print("🎮 ¡El host inició la PARTIDA! Pasando a JUGADOR...")
 	
-	# ✅ Esperar un poco más para asegurar que llegó recibir_jugadores_partida
 	await get_tree().create_timer(0.7).timeout
 	
-	# ✅ Verificación: si no llegaron jugadores, avisar
 	if Global.get_jugadores().size() == 0:
 		print("⚠️ ADVERTENCIA: No llegó la lista de jugadores del host")
 	else:
@@ -246,10 +243,8 @@ func iniciar_partida():
 func recibir_jugadores_partida(jugadores_array: Array):
 	print("📥 Recibiendo jugadores del host: " + str(jugadores_array))
 	
-	# ✅ Guardar en Global
 	Global.jugadores = jugadores_array
 	
-	# ✅ Guardar en el DataManager local
 	if Global.data_manager:
 		Global.data_manager.datos_actuales["jugadores"] = jugadores_array
 		Global.data_manager.guardar_datos()
@@ -257,6 +252,21 @@ func recibir_jugadores_partida(jugadores_array: Array):
 	print("✅ Jugadores sincronizados: " + str(Global.get_jugadores().size()))
 	for j in Global.get_jugadores():
 		print("   • " + j.get("nombre", "?") + " → " + j.get("color", ""))
+
+# =====================================================================
+#  ✅ NUEVO: PEDIR JUGADORES DE LA PARTIDA (para JUGADOR.gd)
+# =====================================================================
+func pedir_jugadores_partida():
+	print("📤 Pidiendo lista de jugadores al host...")
+	pedir_jugadores_partida_rpc.rpc_id(1)
+
+@rpc("any_peer")
+func pedir_jugadores_partida_rpc():
+	# Esta la ejecuta el HOST cuando un cliente la pide
+	if multiplayer.is_server():
+		var sender_id = multiplayer.get_remote_sender_id()
+		print("HOST: Enviando jugadores al peer " + str(sender_id))
+		recibir_jugadores_partida.rpc_id(sender_id, Global.get_jugadores())
 
 # =====================================================================
 #  ENVIAR COLOR AL HOST
@@ -301,16 +311,13 @@ func get_datos_sala(nombre_sala: String) -> Dictionary:
 func soy_host() -> bool:
 	return multiplayer.is_server()
 
-# ✅ FIX: Verificar estado PRIMERO, sin tocar unique_id si no está conectado
 func esta_conectado() -> bool:
 	if peer == null or multiplayer.multiplayer_peer == null:
 		return false
 	if multiplayer.is_server():
 		return true
-	# Verificar estado PRIMERO
 	if peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
 		return false
-	# Recién ahora es seguro pedir el unique_id
 	return multiplayer.get_unique_id() > 1
 
 signal salas_actualizadas

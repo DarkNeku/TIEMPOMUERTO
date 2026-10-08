@@ -6,6 +6,23 @@ const RUTA_PARTIDA = "user://datos_partida.json"
 var datos_actuales: Dictionary = {}
 
 func _ready():
+	# ✅ En el CLIENTE: limpiar jugadores viejos al arrancar (evita fantasmas)
+	# El HOST NO debe borrar nada.
+	if Network and Network.has_method("soy_host") and not Network.soy_host():
+		if FileAccess.file_exists(RUTA_PARTIDA):
+			print("🧹 Cliente: limpiando jugadores viejos de user://")
+			var archivo = FileAccess.open(RUTA_PARTIDA, FileAccess.READ)
+			if archivo:
+				var contenido = archivo.get_as_text()
+				archivo.close()
+				var datos = JSON.parse_string(contenido)
+				if datos:
+					datos["jugadores"] = []
+					var w = FileAccess.open(RUTA_PARTIDA, FileAccess.WRITE)
+					if w:
+						w.store_string(JSON.stringify(datos, "\t"))
+						w.close()
+	
 	cargar_datos()
 
 # ============================================
@@ -29,8 +46,6 @@ func cargar_datos() -> bool:
 				return true
 	
 	# ✅ DETECTAR SI SOMOS HOST O CLIENTE
-	# Si Network es host, cargamos la plantilla (necesita datos base).
-	# Si es cliente, arrancamos con datos vacíos y esperamos el RPC del host.
 	var es_host: bool = false
 	if Network and Network.has_method("soy_host"):
 		es_host = Network.soy_host()
@@ -43,7 +58,6 @@ func cargar_datos() -> bool:
 		crear_datos_por_defecto()
 		return false
 	else:
-		# ✅ CLIENTE: no cargar plantilla. Los jugadores llegan por RPC del host.
 		print("⚠️ Cliente sin partida guardada. Iniciando vacío (esperando RPC del host)...")
 		crear_datos_por_defecto()
 		return false
@@ -116,13 +130,11 @@ func agregar_jugador_partida(nombre: String) -> bool:
 	
 	var jugadores = datos_actuales.get("jugadores", [])
 	
-	# Verificar que no exista
 	for j in jugadores:
 		if j.get("nombre", "").to_upper() == nombre_normalizado:
 			print("⚠️ El jugador " + nombre_normalizado + " ya está en la partida")
 			return false
 	
-	# Agregar con color vacío
 	jugadores.append({
 		"nombre": nombre_normalizado,
 		"color": "",
