@@ -28,15 +28,25 @@ func cargar_datos() -> bool:
 				mostrar_info_jugadores()
 				return true
 	
-	# PRIORIDAD 2: Si NO existe partida, copiar la PLANTILLA
-	print("⚠️ No hay partida guardada. Creando desde plantilla...")
-	if cargar_plantilla():
-		return true
+	# ✅ DETECTAR SI SOMOS HOST O CLIENTE
+	# Si Network es host, cargamos la plantilla (necesita datos base).
+	# Si es cliente, arrancamos con datos vacíos y esperamos el RPC del host.
+	var es_host: bool = false
+	if Network and Network.has_method("soy_host"):
+		es_host = Network.soy_host()
 	
-	# Si tampoco existe la plantilla, crear por defecto
-	print("❌ No hay plantilla. Creando datos por defecto...")
-	crear_datos_por_defecto()
-	return false
+	if es_host:
+		print("⚠️ Host sin partida guardada. Cargando plantilla...")
+		if cargar_plantilla():
+			return true
+		print("❌ No hay plantilla. Creando datos por defecto...")
+		crear_datos_por_defecto()
+		return false
+	else:
+		# ✅ CLIENTE: no cargar plantilla. Los jugadores llegan por RPC del host.
+		print("⚠️ Cliente sin partida guardada. Iniciando vacío (esperando RPC del host)...")
+		crear_datos_por_defecto()
+		return false
 
 func cargar_plantilla() -> bool:
 	if not FileAccess.file_exists(RUTA_PLANTILLA):

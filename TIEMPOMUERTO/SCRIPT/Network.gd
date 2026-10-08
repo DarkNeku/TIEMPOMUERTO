@@ -206,18 +206,19 @@ func iniciar_juego():
 	print("🎨 ¡El host inició la selección de COLORES!")
 	get_tree().change_scene_to_file("res://SCENE/COLORES.tscn")
 
+# ✅ NUEVO: Enviar jugadores PRIMERO, luego cambiar de escena
 @rpc("authority")
 func iniciar_partida():
 	print("🎮 ¡El host inició la PARTIDA! Enviando jugadores a clientes...")
 	
-	# ✅ Enviar los jugadores a TODOS los clientes
+	# ✅ PRIMERO: enviar la lista de jugadores a TODOS los clientes
 	recibir_jugadores_partida.rpc(Global.get_jugadores())
 	print("✅ Lista de jugadores enviada: " + str(Global.get_jugadores()))
 	
-	# Esperar un momento
+	# ✅ Dar tiempo a que el RPC llegue ANTES del cambio de escena
 	await get_tree().create_timer(0.5).timeout
 	
-	# El PC va al MAPA
+	# DESPUÉS: cambiar de escena
 	get_tree().change_scene_to_file("res://SCENE/PC.tscn")
 
 # =====================================================================
@@ -286,7 +287,11 @@ func esta_conectado() -> bool:
 		return false
 	if multiplayer.is_server():
 		return true
-	return peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED and multiplayer.get_unique_id() > 1
+	# ✅ FIX: Verificar estado PRIMERO, sin tocar unique_id si no está conectado
+	if peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		return false
+	# Recién ahora es seguro pedir el unique_id
+	return multiplayer.get_unique_id() > 1
 
 signal salas_actualizadas
 signal jugadores_actualizados

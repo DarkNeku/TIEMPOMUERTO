@@ -223,12 +223,19 @@ func iniciar_juego():
 	print("🎨 ¡El host inició la selección de COLORES!")
 	get_tree().change_scene_to_file("res://SCENE/COLORES.tscn")
 
+# ✅ NUEVO: esperar más para asegurar que llegó recibir_jugadores_partida
 @rpc("authority")
 func iniciar_partida():
 	print("🎮 ¡El host inició la PARTIDA! Pasando a JUGADOR...")
 	
-	# ✅ Esperar un momento para que llegue la lista de jugadores
-	await get_tree().create_timer(0.5).timeout
+	# ✅ Esperar un poco más para asegurar que llegó recibir_jugadores_partida
+	await get_tree().create_timer(0.7).timeout
+	
+	# ✅ Verificación: si no llegaron jugadores, avisar
+	if Global.get_jugadores().size() == 0:
+		print("⚠️ ADVERTENCIA: No llegó la lista de jugadores del host")
+	else:
+		print("✅ Jugadores disponibles al entrar: " + str(Global.get_jugadores().size()))
 	
 	get_tree().change_scene_to_file("res://SCENE/JUGADOR.tscn")
 
@@ -294,12 +301,17 @@ func get_datos_sala(nombre_sala: String) -> Dictionary:
 func soy_host() -> bool:
 	return multiplayer.is_server()
 
+# ✅ FIX: Verificar estado PRIMERO, sin tocar unique_id si no está conectado
 func esta_conectado() -> bool:
 	if peer == null or multiplayer.multiplayer_peer == null:
 		return false
 	if multiplayer.is_server():
 		return true
-	return peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED and multiplayer.get_unique_id() > 1
+	# Verificar estado PRIMERO
+	if peer.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		return false
+	# Recién ahora es seguro pedir el unique_id
+	return multiplayer.get_unique_id() > 1
 
 signal salas_actualizadas
 signal jugadores_actualizados

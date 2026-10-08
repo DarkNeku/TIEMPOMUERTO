@@ -181,6 +181,7 @@ func _on_salas_actualizadas():
 	agregar_log("📡 Salas actualizadas: " + str(Network.salas))
 	mostrar_salas()
 
+# ✅ FIX: return después de detectar desconexión para no usar peer muerto
 func on_timer_timeout():
 	if conectando:
 		return
@@ -191,6 +192,7 @@ func on_timer_timeout():
 		Network.salas = {}
 		Network.desconectar()
 		mostrar_salas()
+		return  # ← ✅ evita intentar pedir_salas con peer ya cerrado
 	
 	if conectado:
 		Network.pedir_salas.rpc_id(1)

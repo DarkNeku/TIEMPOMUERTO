@@ -111,11 +111,22 @@ var arrastrando: bool = false
 var posicion_inicial_mouse: Vector2 = Vector2.ZERO
 var offset_inicial_arrastre: Vector2 = Vector2.ZERO
 
+# ✅ NUEVO: Iniciar esperando los jugadores del host
 func _ready():
 	print("")
 	print("=== JUGADOR: Iniciando ===")
 	
-	await get_tree().create_timer(0.3).timeout
+	# ✅ ESPERAR a que llegue la lista de jugadores del host por RPC
+	var intentos = 0
+	while Global.get_jugadores().size() == 0 and intentos < 30:
+		print("⏳ Esperando lista de jugadores... (intento " + str(intentos + 1) + "/30)")
+		await get_tree().create_timer(0.2).timeout
+		intentos += 1
+	
+	if Global.get_jugadores().size() == 0:
+		print("❌ ERROR: No llegaron jugadores del host. Usando datos locales.")
+	else:
+		print("✅ Jugadores recibidos del host: " + str(Global.get_jugadores().size()))
 	
 	# ✅ Verificar que tenemos jugadores
 	var todos_jugadores = Global.get_jugadores()
@@ -123,11 +134,14 @@ func _ready():
 	for j in todos_jugadores:
 		print("   • " + j.get("nombre", "?") + " → " + j.get("color", ""))
 	
+	# ✅ CALCULAR MI ÍNDICE POR NOMBRE (no hardcodeado)
+	mi_indice_jugador = encontrar_mi_indice()
+	print("👤 Mi índice: " + str(mi_indice_jugador))
+	
 	asignar_nombre_jugador()
 	
 	RoomData.agregar_habitacion_colocada("Room00")
 	
-	# ✅ INICIALIZAR POSICIONES DE TODOS LOS JUGADORES EN Room00
 	RoomData.inicializar_posiciones_jugadores(todos_jugadores, "Room00")
 	RoomData.imprimir_posiciones_jugadores()
 	
@@ -137,7 +151,6 @@ func _ready():
 	
 	cargar_puertas_iniciales("Room00")
 	
-	# ✅ Cargar avatares de Room00
 	await cargar_avatares_en_habitacion("Room00")
 	cargar_fila_avatares()
 	
@@ -145,6 +158,18 @@ func _ready():
 	
 	set_process_input(true)
 	print("=== JUGADOR: Listo ===")
+
+# ✅ NUEVA FUNCIÓN: encontrar mi índice por nombre
+func encontrar_mi_indice() -> int:
+	var mi_nombre = Global.get_mi_nombre()
+	if mi_nombre == "":
+		return 0
+	
+	var jugadores = Global.get_jugadores()
+	for i in range(jugadores.size()):
+		if jugadores[i].get("nombre", "").to_upper() == mi_nombre.to_upper():
+			return i
+	return 0
 
 # ============================================
 # CONFIGURAR VENTANA
@@ -459,7 +484,7 @@ func procesar_codigo():
 	cambiar_habitacion(nueva_habitacion, direccion_entrada)
 
 # ============================================
-# ✅ CAMBIAR DE HABITACIÓN (CON PROTECCIÓN)
+# CAMBIAR DE HABITACIÓN (CON PROTECCIÓN)
 # ============================================
 func cambiar_habitacion(nueva_habitacion: String, direccion_entrada: String):
 	print("")
