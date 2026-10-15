@@ -13,6 +13,9 @@ var peer: MultiplayerPeer = null
 var sala_actual: String = ""
 var conectado: bool = false
 
+# ✅ Para modo prueba: nombres ya reservados
+var nombres_reservados: Dictionary = {}
+
 var _udp_host: PacketPeerUDP = null
 var _udp_busqueda: PacketPeerUDP = null
 var _puerto_juego: int = PUERTO_JUEGO_DEFECTO
@@ -217,23 +220,90 @@ func iniciar_partida():
 	
 	get_tree().change_scene_to_file("res://SCENE/PC.tscn")
 
-# =====================================================================
-#  RECIBIR JUGADORES (el host no recibe, solo envía)
-# =====================================================================
 @rpc("authority")
 func recibir_jugadores_partida(_jugadores_array: Array):
-	# El host no recibe, solo envía
 	pass
 
-# =====================================================================
-#  ✅ NUEVO: RESPONDER CUANDO UN CLIENTE PIDE JUGADORES
-# =====================================================================
 @rpc("any_peer")
 func pedir_jugadores_partida_rpc():
 	if multiplayer.is_server():
 		var sender_id = multiplayer.get_remote_sender_id()
 		print("HOST: Cliente " + str(sender_id) + " pidió jugadores. Enviando...")
 		recibir_jugadores_partida.rpc_id(sender_id, Global.get_jugadores())
+
+# =====================================================================
+#  ✅ MODO PRUEBA: RESERVA DE NOMBRES
+# =====================================================================
+@rpc("any_peer")
+func pedir_jugadores_prueba():
+	if multiplayer.is_server():
+		var sender_id = multiplayer.get_remote_sender_id()
+		print("HOST: Cliente " + str(sender_id) + " pidió lista de jugadores de prueba.")
+		# Mandar SOLO al que pidió: la lista completa + cuáles están reservados
+		sync_jugadores_prueba.rpc_id(sender_id, Global.get_jugadores(), nombres_reservados)
+
+@rpc("any_peer")
+func sync_jugadores_prueba(jugadores_array: Array, reservados: Dictionary):
+	# Esta la recibe el CLIENTE
+	print("📥 Lista de jugadores de prueba recibida: " + str(jugadores_array.size()))
+	print("   Reservados: " + str(reservados.keys()))
+	jugadores_prueba_recibidos.emit(jugadores_array, reservados)
+
+@rpc("any_peer")
+func reservar_jugador_prueba(nombre: String):
+	var nombre_normalizado = nombre.strip_edges().to_upper()
+	
+	if multiplayer.is_server():
+		var sender_id = multiplayer.get_remote_sender_id()
+		print("🎯 Peer " + str(sender_id) + " quiere reservar: " + nombre_normalizado)
+		
+		# ¿Ya está reservado?
+		if nombre_normalizado in nombres_reservados:
+			var dueno = nombres_reservados[nombre_normalizado]
+			print("❌ Ya está reservado por peer " + str(dueno))
+			reserva_rechazada.rpc_id(sender_id, nombre_normalizado, "Ese nombre ya está en uso")
+			return
+		
+		# ¿Existe el jugador en la lista?
+		var existe = false
+		for j in Global.get_jugadores():
+			if j.get("nombre", "").to_upper() == nombre_normalizado:
+				existe = true
+				break
+		
+		if not existe:
+			print("❌ No existe el jugador " + nombre_normalizado)
+			reserva_rechazada.rpc_id(sender_id, nombre_normalizado, "Ese jugador no existe")
+			return
+		
+		# ✅ Reservar
+		nombres_reservados[nombre_normalizado] = sender_id
+		print("✅ Reservado: " + nombre_normalizado + " → peer " + str(sender_id))
+		
+		# ✅ Actualizar el jugador en Global con conectado=true
+		Global.actualizar_conexion_jugador(nombre_normalizado, true)
+		
+		# ✅ Confirmar al que reservó
+		reserva_confirmada.rpc_id(sender_id, nombre_normalizado)
+		
+		# ✅ Broadcast a TODOS para que actualicen la lista
+		sync_reservas.rpc(nombres_reservados)
+
+@rpc("any_peer")
+func reserva_confirmada(nombre: String):
+	print("✅ Reserva confirmada: " + nombre)
+	reserva_exitosa.emit(nombre)
+
+@rpc("any_peer")
+func reserva_rechazada(nombre: String, razon: String):
+	print("❌ Reserva rechazada: " + nombre + " → " + razon)
+	reserva_fallida.emit(nombre, razon)
+
+@rpc("any_peer")
+func sync_reservas(reservados: Dictionary):
+	nombres_reservados = reservados
+	print("🔄 Reservas actualizadas: " + str(reservados.keys()))
+	reservas_actualizadas.emit(reservados)
 
 # =====================================================================
 #  COLORES DE JUGADORES
@@ -305,3 +375,9 @@ signal host_desconectado
 signal sala_llena_signal
 signal colores_actualizados(nombre, color)
 signal color_ya_usado_signal(color, jugador)
+
+# ✅ Señales de modo prueba
+signal jugadores_prueba_recibidos(jugadores: Array, reservados: Dictionary)
+signal reserva_exitosa(nombre: String)
+signal reserva_fallida(nombre: String, razon: String)
+signal reservas_actualizadas(reservados: Dictionary)

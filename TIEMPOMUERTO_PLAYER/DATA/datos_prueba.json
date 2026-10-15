@@ -1,6 +1,6 @@
 {
 	"sala": "SALA 1",
-	"ip_host": "192.168.1.102",
+	"ip_host": "",
 	"puerto": 12345,
 	"jugadores": [
 		{

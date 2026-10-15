@@ -13,6 +13,8 @@ var peer: MultiplayerPeer = null
 var sala_actual: String = ""
 var conectado: bool = false
 
+var nombres_reservados: Dictionary = {}
+
 var _udp_host: PacketPeerUDP = null
 var _udp_busqueda: PacketPeerUDP = null
 var _puerto_juego: int = PUERTO_JUEGO_DEFECTO
@@ -236,9 +238,6 @@ func iniciar_partida():
 	
 	get_tree().change_scene_to_file("res://SCENE/JUGADOR.tscn")
 
-# =====================================================================
-#  ✅ RECIBIR JUGADORES DEL HOST
-# =====================================================================
 @rpc("authority")
 func recibir_jugadores_partida(jugadores_array: Array):
 	print("📥 Recibiendo jugadores del host: " + str(jugadores_array))
@@ -250,30 +249,63 @@ func recibir_jugadores_partida(jugadores_array: Array):
 		Global.data_manager.guardar_datos()
 	
 	print("✅ Jugadores sincronizados: " + str(Global.get_jugadores().size()))
-	for j in Global.get_jugadores():
-		print("   • " + j.get("nombre", "?") + " → " + j.get("color", ""))
 
-# =====================================================================
-#  ✅ NUEVO: PEDIR JUGADORES DE LA PARTIDA (para JUGADOR.gd)
-# =====================================================================
 func pedir_jugadores_partida():
 	print("📤 Pidiendo lista de jugadores al host...")
 	pedir_jugadores_partida_rpc.rpc_id(1)
 
 @rpc("any_peer")
 func pedir_jugadores_partida_rpc():
-	# Esta la ejecuta el HOST cuando un cliente la pide
-	if multiplayer.is_server():
-		var sender_id = multiplayer.get_remote_sender_id()
-		print("HOST: Enviando jugadores al peer " + str(sender_id))
-		recibir_jugadores_partida.rpc_id(sender_id, Global.get_jugadores())
+	pass
+
+# =====================================================================
+#  ✅ MODO PRUEBA: RESERVA DE NOMBRES
+# =====================================================================
+func pedir_jugadores_prueba():
+	print("📤 Pidiendo lista de jugadores de prueba al host...")
+	pedir_jugadores_prueba_rpc.rpc_id(1)
+
+@rpc("any_peer")
+func pedir_jugadores_prueba_rpc():
+	pass
+
+@rpc("any_peer")
+func sync_jugadores_prueba(jugadores_array: Array, reservados: Dictionary):
+	print("📥 Lista de jugadores de prueba recibida: " + str(jugadores_array.size()))
+	print("   Reservados: " + str(reservados.keys()))
+	nombres_reservados = reservados
+	jugadores_prueba_recibidos.emit(jugadores_array, reservados)
+
+func reservar_jugador_prueba(nombre: String):
+	var nombre_normalizado = nombre.strip_edges().to_upper()
+	print("📤 Solicitando reservar: " + nombre_normalizado)
+	reservar_jugador_prueba_rpc.rpc_id(1, nombre_normalizado)
+
+@rpc("any_peer")
+func reservar_jugador_prueba_rpc(nombre: String):
+	pass
+
+@rpc("any_peer")
+func reserva_confirmada(nombre: String):
+	print("✅ Reserva confirmada: " + nombre)
+	reserva_exitosa.emit(nombre)
+
+@rpc("any_peer")
+func reserva_rechazada(nombre: String, razon: String):
+	print("❌ Reserva rechazada: " + nombre + " → " + razon)
+	reserva_fallida.emit(nombre, razon)
+
+@rpc("any_peer")
+func sync_reservas(reservados: Dictionary):
+	nombres_reservados = reservados
+	print("🔄 Reservas actualizadas: " + str(reservados.keys()))
+	reservas_actualizadas.emit(reservados)
 
 # =====================================================================
 #  ENVIAR COLOR AL HOST
 # =====================================================================
 func enviar_mi_color(nombre: String, color: String):
 	var nombre_normalizado = nombre.strip_edges().to_upper()
-	
 	print("📤 Confirmando color al host: " + nombre_normalizado + " → " + color)
 	enviar_color_jugador.rpc_id(1, nombre_normalizado, color)
 
@@ -328,3 +360,9 @@ signal host_desconectado
 signal sala_llena_signal
 signal colores_actualizados(nombre, color)
 signal color_ya_usado_signal(color, jugador)
+
+# ✅ Señales de modo prueba
+signal jugadores_prueba_recibidos(jugadores: Array, reservados: Dictionary)
+signal reserva_exitosa(nombre: String)
+signal reserva_fallida(nombre: String, razon: String)
+signal reservas_actualizadas(reservados: Dictionary)

@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://bwu3iwxpbdjhy"]
+
+[ext_resource type="Script" uid="uid://bshr3w3nyiit5" path="res://SCRIPT/PRUEBA_ANDROID.gd" id="1_fresd"]
+
+[node name="Control" type="Control" unique_id=1979243227]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_fresd")
+
+[node name="Panel" type="Panel" parent="." unique_id=1844693154]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BTN_LISTO_PRUEBA" type="Button" parent="Panel" unique_id=1473344277]
+layout_mode = 0
+offset_left = 249.0
+offset_top = 835.0
+offset_right = 477.0
+offset_bottom = 953.0
+theme_override_font_sizes/font_size = 80
+text = "LISTO"
+
+[node name="NOMBRES" type="RichTextLabel" parent="Panel" unique_id=1055951051]
+layout_mode = 0
+offset_left = 107.0
+offset_top = 186.0
+offset_right = 606.0
+offset_bottom = 775.0

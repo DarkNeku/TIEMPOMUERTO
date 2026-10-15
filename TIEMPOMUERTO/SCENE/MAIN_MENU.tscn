@@ -29,3 +29,12 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_font_sizes/font_size = 60
 text = "CREAR"
+
+[node name="BTN_PRUEBA" type="Button" parent="Panel" unique_id=242147455]
+layout_mode = 0
+offset_left = 546.0
+offset_top = 471.0
+offset_right = 748.0
+offset_bottom = 548.0
+theme_override_font_sizes/font_size = 50
+text = "PRUEBA"

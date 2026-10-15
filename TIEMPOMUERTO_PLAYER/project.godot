@@ -15,7 +15,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="TIEMPOMUERTO_PLAYER"
-run/main_scene="uid://bgbmm001nwnjv"
+run/main_scene="uid://bwu3iwxpbdjhy"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
