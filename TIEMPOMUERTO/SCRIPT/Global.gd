@@ -11,6 +11,8 @@ var cant_jugadores: int = 2
 var tiempo_juego: int = 60
 var datos_cargados: bool = false
 
+var mi_nombre: String = ""
+
 func _ready():
 	print("=== GLOBAL: Iniciando ===")
 	
@@ -41,20 +43,36 @@ func cargar_desde_data_manager():
 	jugadores = data_manager.get_jugadores()
 
 # ============================================
+# MI NOMBRE
+# ============================================
+func set_mi_nombre(nombre: String):
+	mi_nombre = nombre.strip_edges().to_upper()
+	print("👤 Mi nombre guardado: " + mi_nombre)
+
+func get_mi_nombre() -> String:
+	return mi_nombre
+
+# ============================================
+# RECARGAR JUGADORES
+# ============================================
+func recargar_jugadores():
+	if data_manager:
+		jugadores = data_manager.get_jugadores()
+		print("🔄 Jugadores recargados: " + str(jugadores.size()))
+
+# ============================================
 # NUEVA PARTIDA
 # ============================================
 func nueva_partida(nombre_sala_param: String = "", cant: int = 2, tiempo: int = 60):
 	if data_manager:
 		data_manager.nueva_partida(nombre_sala_param, cant, tiempo)
 		cargar_desde_data_manager()
-		print("✅ Nueva partida iniciada desde Global")
 
 # ============================================
-# ✅ AGREGAR JUGADOR (NORMALIZADO)
+# AGREGAR JUGADOR
 # ============================================
 func agregar_jugador(nombre: String):
 	if data_manager:
-		# Normalizar a MAYÚSCULAS
 		var nombre_normalizado = nombre.strip_edges().to_upper()
 		data_manager.agregar_jugador_partida(nombre_normalizado)
 		jugadores = data_manager.get_jugadores()
@@ -83,7 +101,24 @@ func get_tiempo_juego() -> int:
 	return tiempo_juego
 
 # ============================================
-# ✅ ACTUALIZAR COLOR (NORMALIZADO)
+# ✅ JUGADORES CONECTADOS
+# ============================================
+func get_jugadores_conectados() -> Array:
+	var conectados: Array = []
+	for j in jugadores:
+		if j.get("conectado", false) == true:
+			conectados.append(j)
+	return conectados
+
+func get_nombres_conectados() -> Array:
+	var nombres: Array = []
+	for j in jugadores:
+		if j.get("conectado", false) == true:
+			nombres.append(j.get("nombre", ""))
+	return nombres
+
+# ============================================
+# ACTUALIZAR
 # ============================================
 func actualizar_color_jugador(nombre: String, color: String):
 	if data_manager:

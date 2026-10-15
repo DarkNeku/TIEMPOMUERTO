@@ -11,7 +11,6 @@ var cant_jugadores: int = 2
 var tiempo_juego: int = 60
 var datos_cargados: bool = false
 
-# ✅ NOMBRE DEL JUGADOR DE ESTE CELULAR
 var mi_nombre: String = ""
 
 func _ready():
@@ -44,7 +43,7 @@ func cargar_desde_data_manager():
 	jugadores = data_manager.get_jugadores()
 
 # ============================================
-# ✅ MI NOMBRE
+# MI NOMBRE
 # ============================================
 func set_mi_nombre(nombre: String):
 	mi_nombre = nombre.strip_edges().to_upper()
@@ -100,6 +99,23 @@ func get_cant_jugadores() -> int:
 
 func get_tiempo_juego() -> int:
 	return tiempo_juego
+
+# ============================================
+# ✅ JUGADORES CONECTADOS
+# ============================================
+func get_jugadores_conectados() -> Array:
+	var conectados: Array = []
+	for j in jugadores:
+		if j.get("conectado", false) == true:
+			conectados.append(j)
+	return conectados
+
+func get_nombres_conectados() -> Array:
+	var nombres: Array = []
+	for j in jugadores:
+		if j.get("conectado", false) == true:
+			nombres.append(j.get("nombre", ""))
+	return nombres
 
 # ============================================
 # ACTUALIZAR

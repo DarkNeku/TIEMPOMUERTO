@@ -6,62 +6,103 @@ var datos_habitaciones: Dictionary = {}
 var config_general: Dictionary = {}
 var habitaciones: Dictionary = {}
 
-# Habitaciones colocadas
 var habitaciones_colocadas: Array = []
-
-# Conexiones entre habitaciones
 var conexiones: Dictionary = {}
-
-# ✅ Estado guardado de cada habitación visitada
-# {
-#     "Room15": {
-#         "puertas": {
-#             "arriba": {"estado": "cerrada"},
-#             "izquierda": {"estado": "abierta"},
-#             "abajo": {"estado": "sin_puerta"},
-#             "derecha": {"estado": "cerrada"}
-#         }
-#     }
-# }
 var estado_habitaciones: Dictionary = {}
+var posiciones_jugadores: Dictionary = {}
+
+# ✅ Malla de habitaciones: {"0,0": "Room00", "0,-1": "Room05", ...}
+var malla_habitaciones: Dictionary = {}
+
+const LIMITE_MALLA = 5  # 5 a cada lado desde el centro
 
 func _ready():
 	cargar_datos()
 	print("=== RoomData: Inicializado ===")
 
-# ============================================
-# CARGAR DATOS DEL JSON
-# ============================================
 func cargar_datos() -> bool:
 	if not FileAccess.file_exists(RUTA_HABITACIONES):
-		print("❌ No se encontró: " + RUTA_HABITACIONES)
+		print("❌ No existe: " + RUTA_HABITACIONES)
 		return false
 	
 	var archivo = FileAccess.open(RUTA_HABITACIONES, FileAccess.READ)
 	if not archivo:
-		print("❌ No se pudo abrir: " + RUTA_HABITACIONES)
 		return false
 	
 	var contenido = archivo.get_as_text()
 	archivo.close()
-	
 	var datos = JSON.parse_string(contenido)
 	if not datos:
-		print("❌ Error al parsear el JSON")
 		return false
 	
 	datos_habitaciones = datos
 	config_general = datos.get("configuracion_general", {})
 	habitaciones = datos.get("habitaciones", {})
-	
-	print("✅ HABITACIONES.JSON cargado")
-	print("   Configuración general: " + str(config_general.size()) + " entradas")
-	print("   Habitaciones: " + str(habitaciones.size()))
-	
 	return true
 
+func inicializar_room00_por_defecto():
+	if habitacion_ya_generada("Room00"):
+		return
+	
+	var puertas_iniciales = get_puertas_iniciales("Room00")
+	if puertas_iniciales.size() == 0:
+		puertas_iniciales = ["arriba", "abajo", "izquierda", "derecha"]
+	
+	var estado = {"puertas": {}}
+	for direccion in puertas_iniciales:
+		estado["puertas"][direccion] = {"estado": "cerrada"}
+	
+	guardar_estado_habitacion("Room00", estado)
+	agregar_habitacion_colocada("Room00")
+	agregar_a_malla("Room00", 0, 0)
+	print("✅ Room00 inicializada en coord (0,0)")
+
 # ============================================
-# CONFIGURACIÓN GENERAL
+# MALLA
+# ============================================
+func coord_a_string(x: int, y: int) -> String:
+	return str(x) + "," + str(y)
+
+func string_a_coord(s: String) -> Vector2i:
+	var partes = s.split(",")
+	if partes.size() != 2:
+		return Vector2i(-999, -999)
+	return Vector2i(int(partes[0]), int(partes[1]))
+
+func agregar_a_malla(nombre_habitacion: String, x: int, y: int):
+	malla_habitaciones[coord_a_string(x, y)] = nombre_habitacion
+
+func get_habitacion_en_coord(x: int, y: int) -> String:
+	var key = coord_a_string(x, y)
+	if key in malla_habitaciones:
+		return malla_habitaciones[key]
+	return ""
+
+func get_coord_habitacion(nombre: String) -> Vector2i:
+	for key in malla_habitaciones:
+		if malla_habitaciones[key] == nombre:
+			return string_a_coord(key)
+	return Vector2i(-999, -999)
+
+func habitacion_en_malla(nombre: String) -> bool:
+	for key in malla_habitaciones:
+		if malla_habitaciones[key] == nombre:
+			return true
+	return false
+
+func es_coord_valida(x: int, y: int) -> bool:
+	return x >= -LIMITE_MALLA and x <= LIMITE_MALLA and y >= -LIMITE_MALLA and y <= LIMITE_MALLA
+
+func calcular_coord_vecina(x: int, y: int, direccion: String) -> Vector2i:
+	match direccion.to_lower():
+		"arriba":    return Vector2i(x, y - 1)
+		"abajo":     return Vector2i(x, y + 1)
+		"izquierda": return Vector2i(x - 1, y)
+		"derecha":   return Vector2i(x + 1, y)
+	return Vector2i(x, y)
+
+# ============================================
+# CONFIG
 # ============================================
 func get_tamaño_habitacion() -> Vector2:
 	var tamaño = config_general.get("tamaño_habitacion", {"ancho": 512, "alto": 512})
@@ -77,25 +118,18 @@ func get_posicion_puerta(direccion: String) -> Vector2:
 		return Vector2(pos.get("x", 0), pos.get("y", 0))
 	return Vector2.ZERO
 
-# ============================================
-# HABITACIONES
-# ============================================
 func get_habitacion(nombre: String) -> Dictionary:
 	if nombre in habitaciones:
 		return habitaciones[nombre]
 	return {}
 
-func get_nombre_habitacion(nombre: String) -> String:
-	var hab = get_habitacion(nombre)
-	return hab.get("nombre", nombre)
-
 func get_puertas_iniciales(nombre_habitacion: String) -> Array:
 	var hab = get_habitacion(nombre_habitacion)
 	return hab.get("puertas_iniciales", [])
 
-func get_puntos_interes(nombre_habitacion: String) -> Array:
-	var hab = get_habitacion(nombre_habitacion)
-	return hab.get("puntos_interes", [])
+func existe_imagen_habitacion(nombre: String) -> bool:
+	var ruta = "res://ASSET/Rooms/" + nombre + ".png"
+	return ResourceLoader.exists(ruta)
 
 # ============================================
 # HABITACIONES COLOCADAS
@@ -106,14 +140,12 @@ func habitacion_ya_colocada(nombre: String) -> bool:
 func agregar_habitacion_colocada(nombre: String):
 	if not habitacion_ya_colocada(nombre):
 		habitaciones_colocadas.append(nombre)
-		print("📌 Habitación agregada: " + nombre)
-		print("   Total colocadas: " + str(habitaciones_colocadas.size()))
 
 func get_habitaciones_colocadas() -> Array:
 	return habitaciones_colocadas
 
 # ============================================
-# CONEXIONES ENTRE HABITACIONES
+# CONEXIONES
 # ============================================
 func registrar_conexion(hab_origen: String, direccion: String, hab_destino: String):
 	if not hab_origen in conexiones:
@@ -122,11 +154,8 @@ func registrar_conexion(hab_origen: String, direccion: String, hab_destino: Stri
 		conexiones[hab_destino] = {}
 	
 	conexiones[hab_origen][direccion] = hab_destino
-	
 	var direccion_opuesta = obtener_direccion_opuesta(direccion)
 	conexiones[hab_destino][direccion_opuesta] = hab_origen
-	
-	print("🔗 Conexión: " + hab_origen + "[" + direccion + "] ↔ " + hab_destino)
 
 func get_habitacion_conectada(habitacion: String, direccion: String) -> String:
 	if not habitacion in conexiones:
@@ -146,37 +175,32 @@ func obtener_direccion_opuesta(direccion: String) -> String:
 		"derecha":   return "izquierda"
 	return ""
 
-func imprimir_conexiones():
-	print("=== CONEXIONES ===")
-	for habitacion in conexiones:
-		print(habitacion + ": " + str(conexiones[habitacion]))
-
 # ============================================
-# ✅ ESTADO DE HABITACIONES (PUERTAS GUARDADAS)
+# ESTADO DE HABITACIONES
 # ============================================
-
-# Verificar si ya se generó el estado de una habitación
 func habitacion_ya_generada(nombre: String) -> bool:
 	return nombre in estado_habitaciones
 
-# Guardar el estado completo de una habitación
 func guardar_estado_habitacion(nombre: String, estado: Dictionary):
 	estado_habitaciones[nombre] = estado
-	print("💾 Estado guardado de " + nombre)
-	print("   Puertas: " + str(estado.get("puertas", {}).keys()))
 
-# Obtener el estado guardado
+func guardar_estado_habitacion_puerta(nombre: String, direccion: String, nuevo_estado: String):
+	if not nombre in estado_habitaciones:
+		estado_habitaciones[nombre] = {"puertas": {}}
+	if not "puertas" in estado_habitaciones[nombre]:
+		estado_habitaciones[nombre]["puertas"] = {}
+	estado_habitaciones[nombre]["puertas"][direccion] = {"estado": nuevo_estado}
+
 func get_estado_habitacion(nombre: String) -> Dictionary:
-	if nombre in estado_habitaciones:      # ← ✅ CORREGIDO
+	if nombre in estado_habitaciones:
 		return estado_habitaciones[nombre]
 	return {}
 
 # ============================================
-# VALIDAR CÓDIGO
+# VALIDACIÓN DE CÓDIGO
 # ============================================
 func validar_codigo_habitacion(codigo: String, habitacion_actual: String) -> Dictionary:
 	var resultado = {"valido": false, "error": "", "nombre_habitacion": ""}
-	
 	var codigo_limpio = codigo.strip_edges()
 	
 	if codigo_limpio == "":
@@ -203,35 +227,25 @@ func validar_codigo_habitacion(codigo: String, habitacion_actual: String) -> Dic
 		resultado["error"] = "Esa habitación ya está en el tablero"
 		return resultado
 	
-	var ruta = "res://ASSET/Rooms/" + nombre_habitacion + ".png"
-	if not ResourceLoader.exists(ruta):
+	if not existe_imagen_habitacion(nombre_habitacion):
 		resultado["error"] = "No existe la habitación " + nombre_habitacion
 		return resultado
 	
 	resultado["valido"] = true
 	resultado["nombre_habitacion"] = nombre_habitacion
-	print("✅ Código válido: " + nombre_habitacion)
-	
 	return resultado
 
-func existe_habitacion(nombre: String) -> bool:
-	return nombre in habitaciones
-
-func imprimir_info():
-	print("=== INFO ===")
-	print("Colocadas: " + str(habitaciones_colocadas))
-	imprimir_conexiones()
-	# ============================================
+# ============================================
 # POSICIONES DE JUGADORES
 # ============================================
-var posiciones_jugadores: Dictionary = {}
-
 func inicializar_posiciones_jugadores(jugadores: Array, habitacion_inicial: String):
 	for jugador in jugadores:
 		var nombre = jugador.get("nombre", "")
 		if nombre != "":
 			posiciones_jugadores[nombre] = habitacion_inicial
-			print("👤 " + nombre + " → " + habitacion_inicial)
+
+func inicializar_posicion_jugador(nombre: String, habitacion_inicial: String):
+	posiciones_jugadores[nombre] = habitacion_inicial
 
 func get_habitacion_jugador(nombre: String) -> String:
 	if nombre in posiciones_jugadores:
@@ -240,7 +254,6 @@ func get_habitacion_jugador(nombre: String) -> String:
 
 func actualizar_posicion_jugador(nombre: String, nueva_habitacion: String):
 	posiciones_jugadores[nombre] = nueva_habitacion
-	print("👤 " + nombre + " se movió a " + nueva_habitacion)
 
 func get_jugadores_en_habitacion(nombre_habitacion: String) -> Array:
 	var jugadores_aqui = []
@@ -249,7 +262,101 @@ func get_jugadores_en_habitacion(nombre_habitacion: String) -> Array:
 			jugadores_aqui.append(nombre)
 	return jugadores_aqui
 
-func imprimir_posiciones_jugadores():
-	print("=== POSICIONES ===")
-	for nombre in posiciones_jugadores:
-		print("  " + nombre + " → " + posiciones_jugadores[nombre])
+# ============================================
+# ✅ GENERACIÓN DE PUERTAS (con curva de dificultad)
+# ============================================
+func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i, direccion_entrada: String) -> Dictionary:
+	var direcciones = ["arriba", "abajo", "izquierda", "derecha"]
+	var estado_puertas = {}
+	
+	# Distancia al centro (la mayor entre |x| e |y|)
+	var distancia = max(abs(coord.x), abs(coord.y))
+	
+	# ✅ Curva de probabilidad:
+	# dist 0 → 1.00 (siempre 4 puertas)
+	# dist 1 → 1.00 (siempre 4 puertas)
+	# dist 2 → 0.85
+	# dist 3 → 0.70
+	# dist 4 → 0.55
+	# dist 5 → 0.40
+	var probabilidad = 1.0
+	if distancia >= 2:
+		probabilidad = max(0.40, 1.0 - ((distancia - 1) * 0.15))
+	
+	print("🎲 Generando puertas para " + nombre_habitacion + " en (" + str(coord.x) + "," + str(coord.y) + ") dist=" + str(distancia) + " prob=" + str(probabilidad))
+	
+	# Primera pasada: decidir cada puerta
+	for direccion in direcciones:
+		if direccion == direccion_entrada:
+			estado_puertas[direccion] = "abierta"
+			continue
+		
+		var coord_vecino = calcular_coord_vecina(coord.x, coord.y, direccion)
+		
+		# Fuera del rango → sin puerta
+		if not es_coord_valida(coord_vecino.x, coord_vecino.y):
+			estado_puertas[direccion] = "sin_puerta"
+			continue
+		
+		# Vecino existente → forzar cerrada
+		var habitacion_vecina = get_habitacion_en_coord(coord_vecino.x, coord_vecino.y)
+		if habitacion_vecina != "":
+			estado_puertas[direccion] = "cerrada"
+			continue
+		
+		# Aleatorio según probabilidad
+		var aleatorio = randf()
+		if aleatorio < probabilidad:
+			estado_puertas[direccion] = "cerrada"
+		else:
+			estado_puertas[direccion] = "sin_puerta"
+	
+	# ✅ Segunda pasada: garantizar mínimo de puertas
+	# Cerca del centro: mínimo 2 puertas (incluyendo la de entrada)
+	# Lejos del centro: mínimo 1 puerta (solo la de entrada)
+	var minimo_puertas = 2 if distancia <= 3 else 1
+	
+	var puertas_actuales = 0
+	for direccion in estado_puertas:
+		if estado_puertas[direccion] != "sin_puerta":
+			puertas_actuales += 1
+	
+	if puertas_actuales < minimo_puertas:
+		var faltan = minimo_puertas - puertas_actuales
+		var direcciones_sin_puerta = []
+		
+		for direccion in direcciones:
+			if estado_puertas[direccion] == "sin_puerta":
+				var coord_vecino = calcular_coord_vecina(coord.x, coord.y, direccion)
+				if es_coord_valida(coord_vecino.x, coord_vecino.y):
+					direcciones_sin_puerta.append(direccion)
+		
+		# Mezclar al azar y forzar las primeras N
+		direcciones_sin_puerta.shuffle()
+		for i in range(min(faltan, direcciones_sin_puerta.size())):
+			estado_puertas[direcciones_sin_puerta[i]] = "cerrada"
+			print("   🔧 Forzada puerta " + direcciones_sin_puerta[i] + " para garantizar mínimo " + str(minimo_puertas))
+	
+	# Log del resultado
+	var resumen = ""
+	for d in direcciones:
+		resumen += d + "=" + estado_puertas[d] + " "
+	print("   ✅ Resultado: " + resumen)
+	
+	return estado_puertas
+
+# ✅ Forzar la puerta opuesta en una habitación vecina
+func forzar_puerta_opuesta_en_vecino(nombre_vecino: String, direccion_hacia_esta: String):
+	var estado_vecino = get_estado_habitacion(nombre_vecino)
+	if estado_vecino.is_empty():
+		estado_vecino = {"puertas": {}}
+	if not "puertas" in estado_vecino:
+		estado_vecino["puertas"] = {}
+	
+	# Si la puerta no existe o está "sin_puerta", la forzamos a cerrada
+	if not direccion_hacia_esta in estado_vecino["puertas"]:
+		estado_vecino["puertas"][direccion_hacia_esta] = {"estado": "cerrada"}
+	elif estado_vecino["puertas"][direccion_hacia_esta].get("estado", "") == "sin_puerta":
+		estado_vecino["puertas"][direccion_hacia_esta] = {"estado": "cerrada"}
+	
+	guardar_estado_habitacion(nombre_vecino, estado_vecino)

@@ -20,10 +20,14 @@ var _udp_busqueda: PacketPeerUDP = null
 var _puerto_juego: int = PUERTO_JUEGO_DEFECTO
 var _hosts_encontrados: Array[String] = []
 
+signal jugadores_actualizados_signal
+signal habitacion_actualizada_signal
+signal sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado: String)
+signal estado_completo_recibido(paquete: Dictionary)
+signal habitacion_rechazada_signal(motivo: String)
+
 func _ready():
 	print("=== NETWORK: INICIALIZADO (CELULAR-CLIENTE) ===")
-	print("SO: " + OS.get_name())
-	print("=== RED: IPv4 de este equipo: " + str(get_ips_ipv4()))
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
@@ -32,8 +36,6 @@ func _process(_delta: float) -> void:
 	pass
 
 func preparar_cliente(ip: String, port: int = PUERTO_JUEGO_DEFECTO) -> bool:
-	print("=== PREPARAR_CLIENTE: " + ip + ":" + str(port))
-	
 	if ip.strip_edges() == "":
 		return false
 	
@@ -44,7 +46,6 @@ func preparar_cliente(ip: String, port: int = PUERTO_JUEGO_DEFECTO) -> bool:
 	var result: int = peer.create_client(ip.strip_edges(), port)
 	
 	if result != OK:
-		print("ERROR: No se pudo conectar - Código: " + str(result))
 		peer = null
 		return false
 	
@@ -58,7 +59,6 @@ func esperar_conexion(timeout: float = 5.0) -> bool:
 			return false
 		if peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED and multiplayer.get_unique_id() > 1:
 			conectado = true
-			print("=== CLIENTE: CONECTADO. Peer ID: " + str(multiplayer.get_unique_id()))
 			return true
 		await get_tree().create_timer(0.05).timeout
 		t += 0.05
@@ -140,7 +140,6 @@ func descubrir_host(timeout: float = 3.0, ip_extra: String = "") -> Array[String
 	var candidatos: Array[String] = construir_candidatos(ip_extra)
 	var enviados: int = 0
 	var t: float = 0.0
-	print("=== BUSQUEDA: sondeando " + str(candidatos.size()) + " direcciones")
 	
 	while t < timeout:
 		if enviados < candidatos.size():
@@ -157,7 +156,6 @@ func descubrir_host(timeout: float = 3.0, ip_extra: String = "") -> Array[String
 			var ip_host: String = udp.get_packet_ip()
 			if _hosts_encontrados.find(ip_host) == -1:
 				_hosts_encontrados.append(ip_host)
-				print("=== BUSQUEDA: host encontrado en " + ip_host)
 		
 		if _hosts_encontrados.size() > 0:
 			break
@@ -170,18 +168,19 @@ func descubrir_host(timeout: float = 3.0, ip_extra: String = "") -> Array[String
 
 func _on_connected_to_server() -> void:
 	conectado = true
-	print("=== RED: conectado al host. Peer ID: " + str(multiplayer.get_unique_id()))
 	conexion_establecida.emit()
 
 func _on_connection_failed() -> void:
 	conectado = false
-	print("=== RED: no se pudo establecer la conexión")
 	conexion_fallida.emit()
 
 func _on_server_disconnected() -> void:
 	conectado = false
-	print("=== RED: el host cerró la conexión")
 	host_desconectado.emit()
+
+# =====================================================================
+#  RPCs
+# =====================================================================
 
 @rpc("any_peer")
 func pedir_salas():
@@ -189,13 +188,11 @@ func pedir_salas():
 
 @rpc("any_peer")
 func sync_salas(salas_dict: Dictionary):
-	print("=== SYNC_SALAS: RECIBIDO ===")
 	salas = salas_dict
 	emit_signal("salas_actualizadas")
 
 @rpc("any_peer")
 func sync_datos_salas(datos_dict: Dictionary):
-	print("=== SYNC_DATOS_SALAS: " + str(datos_dict))
 	datos_salas = datos_dict
 
 @rpc("any_peer")
@@ -204,12 +201,10 @@ func unirse_sala(nombre_sala: String, nombre_usuario: String):
 
 @rpc("any_peer")
 func sala_llena(nombre_sala: String):
-	print("❌ La sala " + nombre_sala + " está llena")
 	sala_llena_signal.emit(nombre_sala)
 
 @rpc("any_peer")
 func sync_jugadores(jugadores_dict: Dictionary):
-	print("=== SYNC_JUGADORES: RECIBIDO ===")
 	jugadores = jugadores_dict
 	emit_signal("jugadores_actualizados")
 
@@ -217,96 +212,173 @@ func sync_jugadores(jugadores_dict: Dictionary):
 func pedir_jugadores(nombre_sala: String):
 	pass
 
-# =====================================================================
-#  INICIAR JUEGO Y PARTIDA
-# =====================================================================
 @rpc("authority")
 func iniciar_juego():
-	print("🎨 ¡El host inició la selección de COLORES!")
 	get_tree().change_scene_to_file("res://SCENE/COLORES.tscn")
 
 @rpc("authority")
 func iniciar_partida():
-	print("🎮 ¡El host inició la PARTIDA! Pasando a JUGADOR...")
-	
 	await get_tree().create_timer(0.7).timeout
-	
-	if Global.get_jugadores().size() == 0:
-		print("⚠️ ADVERTENCIA: No llegó la lista de jugadores del host")
-	else:
-		print("✅ Jugadores disponibles al entrar: " + str(Global.get_jugadores().size()))
-	
 	get_tree().change_scene_to_file("res://SCENE/JUGADOR.tscn")
 
 @rpc("authority")
 func recibir_jugadores_partida(jugadores_array: Array):
-	print("📥 Recibiendo jugadores del host: " + str(jugadores_array))
-	
 	Global.jugadores = jugadores_array
-	
 	if Global.data_manager:
 		Global.data_manager.datos_actuales["jugadores"] = jugadores_array
 		Global.data_manager.guardar_datos()
-	
-	print("✅ Jugadores sincronizados: " + str(Global.get_jugadores().size()))
-
-func pedir_jugadores_partida():
-	print("📤 Pidiendo lista de jugadores al host...")
-	pedir_jugadores_partida_rpc.rpc_id(1)
+	jugadores_actualizados_signal.emit()
 
 @rpc("any_peer")
 func pedir_jugadores_partida_rpc():
 	pass
 
 # =====================================================================
-#  ✅ MODO PRUEBA: RESERVA DE NOMBRES
+#  MODO PRUEBA
 # =====================================================================
-func pedir_jugadores_prueba():
-	print("📤 Pidiendo lista de jugadores de prueba al host...")
-	pedir_jugadores_prueba_rpc.rpc_id(1)
+
+func solicitar_lista_jugadores_prueba():
+	pedir_jugadores_prueba.rpc_id(1)
 
 @rpc("any_peer")
-func pedir_jugadores_prueba_rpc():
+func pedir_jugadores_prueba():
 	pass
 
 @rpc("any_peer")
 func sync_jugadores_prueba(jugadores_array: Array, reservados: Dictionary):
-	print("📥 Lista de jugadores de prueba recibida: " + str(jugadores_array.size()))
-	print("   Reservados: " + str(reservados.keys()))
 	nombres_reservados = reservados
 	jugadores_prueba_recibidos.emit(jugadores_array, reservados)
 
-func reservar_jugador_prueba(nombre: String):
+func solicitar_reserva_jugador(nombre: String):
 	var nombre_normalizado = nombre.strip_edges().to_upper()
-	print("📤 Solicitando reservar: " + nombre_normalizado)
-	reservar_jugador_prueba_rpc.rpc_id(1, nombre_normalizado)
+	reservar_jugador_prueba.rpc_id(1, nombre_normalizado)
 
 @rpc("any_peer")
-func reservar_jugador_prueba_rpc(nombre: String):
+func reservar_jugador_prueba(nombre: String):
 	pass
 
 @rpc("any_peer")
 func reserva_confirmada(nombre: String):
-	print("✅ Reserva confirmada: " + nombre)
 	reserva_exitosa.emit(nombre)
 
 @rpc("any_peer")
 func reserva_rechazada(nombre: String, razon: String):
-	print("❌ Reserva rechazada: " + nombre + " → " + razon)
 	reserva_fallida.emit(nombre, razon)
 
 @rpc("any_peer")
 func sync_reservas(reservados: Dictionary):
 	nombres_reservados = reservados
-	print("🔄 Reservas actualizadas: " + str(reservados.keys()))
 	reservas_actualizadas.emit(reservados)
 
 # =====================================================================
-#  ENVIAR COLOR AL HOST
+#  SINCRONIZACIÓN
 # =====================================================================
+
+func pedir_estado_completo():
+	if not esta_conectado():
+		return
+	solicitar_estado_completo.rpc_id(1)
+
+@rpc("any_peer")
+func solicitar_estado_completo():
+	pass
+
+@rpc("any_peer")
+func sync_estado_completo(paquete: Dictionary):
+	print("📥 CLIENTE: Recibido estado completo")
+	
+	if paquete.has("jugadores"):
+		Global.jugadores = paquete["jugadores"]
+		if Global.data_manager:
+			Global.data_manager.datos_actuales["jugadores"] = paquete["jugadores"]
+			Global.data_manager.guardar_datos()
+	
+	if paquete.has("posiciones"):
+		RoomData.posiciones_jugadores = paquete["posiciones"]
+	
+	if paquete.has("habitaciones_colocadas"):
+		RoomData.habitaciones_colocadas = paquete["habitaciones_colocadas"]
+	
+	if paquete.has("conexiones"):
+		RoomData.conexiones = paquete["conexiones"]
+	
+	if paquete.has("estado_habitaciones"):
+		RoomData.estado_habitaciones = paquete["estado_habitaciones"]
+	
+	if paquete.has("malla_habitaciones"):
+		RoomData.malla_habitaciones = paquete["malla_habitaciones"]
+	
+	print("   Jugadores: " + str(Global.jugadores.size()))
+	print("   Conexiones: " + str(RoomData.conexiones.size()))
+	print("   Malla: " + str(RoomData.malla_habitaciones.size()))
+	
+	estado_completo_recibido.emit(paquete)
+
+# =====================================================================
+#  WRAPPERS PÚBLICOS
+# =====================================================================
+
+func avisar_puerta_abierta(habitacion: String, direccion: String):
+	solicitar_abrir_puerta.rpc_id(1, habitacion, direccion)
+
+@rpc("any_peer")
+func solicitar_abrir_puerta(habitacion: String, direccion: String):
+	pass
+
+@rpc("any_peer")
+func sync_puerta_estado(habitacion: String, direccion: String, nuevo_estado: String):
+	print("🔄 Sync puerta: " + habitacion + "[" + direccion + "] → " + nuevo_estado)
+	RoomData.guardar_estado_habitacion_puerta(habitacion, direccion, nuevo_estado)
+	sync_puerta_visual.emit(habitacion, direccion, nuevo_estado)
+
+# ✅ NUEVO: avisar al host que se descubre una habitación nueva con el código
+func avisar_habitacion_nueva(codigo: String, direccion: String, habitacion_origen: String):
+	solicitar_nueva_habitacion.rpc_id(1, codigo, direccion, habitacion_origen)
+
+@rpc("any_peer")
+func solicitar_nueva_habitacion(codigo: String, direccion: String, habitacion_origen: String):
+	pass
+
+@rpc("any_peer")
+func sync_habitacion_nueva(nombre_habitacion: String, _codigo: String, direccion: String, habitacion_origen: String, estado_puertas: Dictionary, coord: Vector2i):
+	print("🔄 CLIENTE: Nueva habitación: " + nombre_habitacion + " en (" + str(coord.x) + "," + str(coord.y) + ") desde " + habitacion_origen + "[" + direccion + "]")
+	
+	RoomData.agregar_habitacion_colocada(nombre_habitacion)
+	
+	var estado = {"puertas": {}}
+	for d in estado_puertas:
+		estado["puertas"][d] = {"estado": estado_puertas[d]}
+	RoomData.guardar_estado_habitacion(nombre_habitacion, estado)
+	
+	RoomData.agregar_a_malla(nombre_habitacion, coord.x, coord.y)
+	RoomData.registrar_conexion(habitacion_origen, direccion, nombre_habitacion)
+	
+	habitacion_actualizada_signal.emit(nombre_habitacion)
+
+@rpc("any_peer")
+func habitacion_rechazada(motivo: String):
+	print("❌ CLIENTE: " + motivo)
+	habitacion_rechazada_signal.emit(motivo)
+
+func avisar_movimiento(nombre_jugador: String, habitacion_destino: String):
+	solicitar_mover_jugador.rpc_id(1, nombre_jugador, habitacion_destino)
+
+@rpc("any_peer")
+func solicitar_mover_jugador(nombre_jugador: String, habitacion_destino: String):
+	pass
+
+@rpc("any_peer")
+func sync_jugador_movido(nombre_jugador: String, habitacion_destino: String):
+	print("🔄 Sync movimiento: " + nombre_jugador + " → " + habitacion_destino)
+	RoomData.actualizar_posicion_jugador(nombre_jugador, habitacion_destino)
+	habitacion_actualizada_signal.emit(habitacion_destino)
+
+# =====================================================================
+#  COLORES
+# =====================================================================
+
 func enviar_mi_color(nombre: String, color: String):
 	var nombre_normalizado = nombre.strip_edges().to_upper()
-	print("📤 Confirmando color al host: " + nombre_normalizado + " → " + color)
 	enviar_color_jugador.rpc_id(1, nombre_normalizado, color)
 
 @rpc("any_peer")
@@ -315,13 +387,11 @@ func enviar_color_jugador(nombre: String, color: String):
 
 @rpc("any_peer")
 func sync_colores(nombre: String, color: String):
-	print("🎨 Sync color: " + nombre + " → " + color)
 	colores_usados[color] = nombre
 	colores_actualizados.emit(nombre, color)
 
 @rpc("any_peer")
 func color_ya_usado(color: String, jugador_que_lo_tiene: String):
-	print("❌ El color " + color + " ya está en uso por " + jugador_que_lo_tiene)
 	color_ya_usado_signal.emit(color, jugador_que_lo_tiene)
 
 # =====================================================================
@@ -360,8 +430,6 @@ signal host_desconectado
 signal sala_llena_signal
 signal colores_actualizados(nombre, color)
 signal color_ya_usado_signal(color, jugador)
-
-# ✅ Señales de modo prueba
 signal jugadores_prueba_recibidos(jugadores: Array, reservados: Dictionary)
 signal reserva_exitosa(nombre: String)
 signal reserva_fallida(nombre: String, razon: String)
