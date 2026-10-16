@@ -25,6 +25,7 @@ signal habitacion_actualizada_signal
 signal sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado: String)
 signal estado_completo_recibido(paquete: Dictionary)
 signal habitacion_rechazada_signal(motivo: String)
+signal posiciones_actualizadas_signal
 
 func _ready():
 	print("=== NETWORK: INICIALIZADO (CELULAR-CLIENTE) ===")
@@ -271,6 +272,15 @@ func sync_reservas(reservados: Dictionary):
 	reservas_actualizadas.emit(reservados)
 
 # =====================================================================
+#  ✅ NUEVO: sincronización de posiciones
+# =====================================================================
+@rpc("any_peer")
+func sync_posiciones(posiciones: Dictionary):
+	print("📍 CLIENTE: sync_posiciones recibido: " + str(posiciones))
+	RoomData.posiciones_jugadores = posiciones
+	posiciones_actualizadas_signal.emit()
+
+# =====================================================================
 #  SINCRONIZACIÓN
 # =====================================================================
 
@@ -285,7 +295,7 @@ func solicitar_estado_completo():
 
 @rpc("any_peer")
 func sync_estado_completo(paquete: Dictionary):
-	print("📥 CLIENTE: Recibido estado completo")
+	print("📥 CLIENTE: Estado completo recibido. Conexiones: " + str(paquete.get("conexiones", {}).size()))
 	
 	if paquete.has("jugadores"):
 		Global.jugadores = paquete["jugadores"]
@@ -308,11 +318,12 @@ func sync_estado_completo(paquete: Dictionary):
 	if paquete.has("malla_habitaciones"):
 		RoomData.malla_habitaciones = paquete["malla_habitaciones"]
 	
-	print("   Jugadores: " + str(Global.jugadores.size()))
-	print("   Conexiones: " + str(RoomData.conexiones.size()))
-	print("   Malla: " + str(RoomData.malla_habitaciones.size()))
-	
 	estado_completo_recibido.emit(paquete)
+
+@rpc("any_peer")
+func sync_conexion(hab_a: String, dir_a: String, hab_b: String):
+	print("🔗 CLIENTE: Conexión registrada: " + hab_a + "[" + dir_a + "] ↔ " + hab_b)
+	RoomData.registrar_conexion(hab_a, dir_a, hab_b)
 
 # =====================================================================
 #  WRAPPERS PÚBLICOS
@@ -327,11 +338,9 @@ func solicitar_abrir_puerta(habitacion: String, direccion: String):
 
 @rpc("any_peer")
 func sync_puerta_estado(habitacion: String, direccion: String, nuevo_estado: String):
-	print("🔄 Sync puerta: " + habitacion + "[" + direccion + "] → " + nuevo_estado)
 	RoomData.guardar_estado_habitacion_puerta(habitacion, direccion, nuevo_estado)
 	sync_puerta_visual.emit(habitacion, direccion, nuevo_estado)
 
-# ✅ NUEVO: avisar al host que se descubre una habitación nueva con el código
 func avisar_habitacion_nueva(codigo: String, direccion: String, habitacion_origen: String):
 	solicitar_nueva_habitacion.rpc_id(1, codigo, direccion, habitacion_origen)
 
@@ -341,7 +350,7 @@ func solicitar_nueva_habitacion(codigo: String, direccion: String, habitacion_or
 
 @rpc("any_peer")
 func sync_habitacion_nueva(nombre_habitacion: String, _codigo: String, direccion: String, habitacion_origen: String, estado_puertas: Dictionary, coord: Vector2i):
-	print("🔄 CLIENTE: Nueva habitación: " + nombre_habitacion + " en (" + str(coord.x) + "," + str(coord.y) + ") desde " + habitacion_origen + "[" + direccion + "]")
+	print("🔄 CLIENTE: Nueva habitación: " + nombre_habitacion + " en (" + str(coord.x) + "," + str(coord.y) + ")")
 	
 	RoomData.agregar_habitacion_colocada(nombre_habitacion)
 	
@@ -369,7 +378,6 @@ func solicitar_mover_jugador(nombre_jugador: String, habitacion_destino: String)
 
 @rpc("any_peer")
 func sync_jugador_movido(nombre_jugador: String, habitacion_destino: String):
-	print("🔄 Sync movimiento: " + nombre_jugador + " → " + habitacion_destino)
 	RoomData.actualizar_posicion_jugador(nombre_jugador, habitacion_destino)
 	habitacion_actualizada_signal.emit(habitacion_destino)
 

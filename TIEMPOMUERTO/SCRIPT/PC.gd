@@ -83,6 +83,8 @@ func _ready():
 	
 	crear_tablero()
 	await refrescar_tablero_completo()
+	
+	centrar_en_room00()
 
 func crear_tablero():
 	for child in mapa_contenido.get_children():
@@ -92,7 +94,19 @@ func crear_tablero():
 	tablero.name = "TABLERO"
 	mapa_contenido.add_child(tablero)
 
-# ✅ AHORA USA LA MALLA DEL HOST, NO CALCULA BFS
+func centrar_en_room00():
+	if not tablero:
+		return
+	
+	var tamaño_hab = RoomData.get_tamaño_habitacion()
+	var centro_room00 = Vector2(tamaño_hab.x / 2, tamaño_hab.y / 2)
+	
+	var tamaño_panel = panel_mapa.size
+	var centro_panel = tamaño_panel / 2
+	
+	var pos_deseada = centro_panel - (centro_room00 * zoom_actual)
+	mapa_contenido.position = pos_deseada
+
 func calcular_posiciones_habitaciones() -> Dictionary:
 	var posiciones = {}
 	var tamaño_hab = RoomData.get_tamaño_habitacion()
@@ -389,13 +403,25 @@ func configurar_animacion_avatar(avatar: Node, color: String):
 		animated_sprite.frame = 0
 		animated_sprite.play()
 
+# ============================================
+# ✅ NUEVO: refrescar solo los avatares de TODAS las habitaciones
+# ============================================
+func refrescar_todos_los_avatares():
+	for nombre_hab in habitaciones_nodos.keys():
+		if is_instance_valid(habitaciones_nodos.get(nombre_hab)):
+			await cargar_avatares_en_habitacion(nombre_hab)
+
 func _on_jugadores_actualizados():
-	for nombre_habitacion in habitaciones_nodos.keys():
-		if is_instance_valid(habitaciones_nodos.get(nombre_habitacion)):
-			await cargar_avatares_en_habitacion(nombre_habitacion)
+	await refrescar_todos_los_avatares()
 
 func _on_habitacion_actualizada(_nombre_habitacion: String):
-	await refrescar_tablero_completo()
+	# ✅ Refrescar solo avatares, no todo el tablero
+	# Esto elimina avatares viejos y los redibuja donde corresponde.
+	await refrescar_todos_los_avatares()
+	
+	# Si la habitación no existe en el tablero (fue recién agregada), refrescar todo
+	if not _nombre_habitacion in habitaciones_nodos:
+		await refrescar_tablero_completo()
 
 func _on_sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado: String):
 	if not habitacion in habitaciones_nodos:
@@ -436,16 +462,18 @@ func _on_sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado:
 	else:
 		crear_ficha_en_room(direccion, "lupa", posicion, capa_fichas)
 
+# ============================================
+# INPUT (zoom centrado en mouse)
+# ============================================
 func _input(event: InputEvent):
 	if event is InputEventMouseButton:
+		var pos_mouse = get_global_mouse_position()
+		
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-			zoom_actual = min(zoom_actual + velocidad_zoom, zoom_maximo)
-			aplicar_zoom()
+			aplicar_zoom_en_posicion(zoom_actual + velocidad_zoom, pos_mouse)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			zoom_actual = max(zoom_actual - velocidad_zoom, zoom_minimo)
-			aplicar_zoom()
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			var pos_mouse = get_global_mouse_position()
+			aplicar_zoom_en_posicion(zoom_actual - velocidad_zoom, pos_mouse)
+		elif event.button_index == MOUSE_BUTTON_LEFT:
 			var rect_panel = Rect2(panel_mapa.global_position, panel_mapa.size)
 			if rect_panel.has_point(pos_mouse):
 				if event.pressed:
@@ -460,5 +488,12 @@ func _input(event: InputEvent):
 		var delta = pos_mouse - posicion_inicial_mouse
 		mapa_contenido.position = posicion_inicial_mapa + delta
 
-func aplicar_zoom():
+func aplicar_zoom_en_posicion(nuevo_zoom: float, punto_pantalla: Vector2):
+	var zoom_clamped = clamp(nuevo_zoom, zoom_minimo, zoom_maximo)
+	
+	var mundo_bajo_punto = (punto_pantalla - mapa_contenido.position) / zoom_actual
+	
+	zoom_actual = zoom_clamped
 	mapa_contenido.scale = Vector2(zoom_actual, zoom_actual)
+	
+	mapa_contenido.position = punto_pantalla - (mundo_bajo_punto * zoom_actual)

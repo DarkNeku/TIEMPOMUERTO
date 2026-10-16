@@ -134,6 +134,7 @@ func enviar_estado_completo_a(id: int):
 		"malla_habitaciones": RoomData.malla_habitaciones
 	}
 	print("📤 HOST: Enviando estado completo a " + str(id))
+	print("   Jugadores: " + str(Global.get_jugadores().size()) + " | Posiciones: " + str(RoomData.posiciones_jugadores.size()))
 	sync_estado_completo.rpc_id(id, paquete)
 
 # =====================================================================
@@ -268,7 +269,13 @@ func reservar_jugador_prueba(nombre: String):
 			Global.data_manager.guardar_datos()
 		Global.jugadores = jugadores_actualizados
 		
+		# ✅ Inicializar posición del nuevo jugador
 		RoomData.inicializar_posicion_jugador(nombre_normalizado, "Room00")
+		print("📍 HOST: " + nombre_normalizado + " inicializado en Room00")
+		
+		# ✅ Broadcast de posiciones actualizadas
+		sync_posiciones.rpc(RoomData.posiciones_jugadores)
+		print("📍 HOST: sync_posiciones enviado: " + str(RoomData.posiciones_jugadores))
 		
 		reserva_confirmada.rpc_id(sender_id, nombre_normalizado)
 		sync_reservas.rpc(nombres_reservados)
@@ -290,7 +297,14 @@ func sync_reservas(reservados: Dictionary):
 	reservas_actualizadas.emit(reservados)
 
 # =====================================================================
-#  ✅ SINCRONIZACIÓN DE ESTADO
+#  ✅ NUEVO: sincronización de posiciones
+# =====================================================================
+@rpc("any_peer")
+func sync_posiciones(_posiciones: Dictionary):
+	pass  # El host no hace nada (ya lo hizo)
+
+# =====================================================================
+#  SINCRONIZACIÓN DE ESTADO
 # =====================================================================
 
 @rpc("any_peer")
@@ -301,6 +315,10 @@ func solicitar_estado_completo():
 
 @rpc("any_peer")
 func sync_estado_completo(_paquete: Dictionary):
+	pass
+
+@rpc("any_peer")
+func sync_conexion(hab_a: String, dir_a: String, hab_b: String):
 	pass
 
 @rpc("any_peer")
@@ -315,7 +333,6 @@ func solicitar_abrir_puerta(habitacion: String, direccion: String):
 		estado["puertas"][direccion] = {"estado": "abierta"}
 		RoomData.guardar_estado_habitacion(habitacion, estado)
 		
-		# ✅ Abrir la puerta opuesta en la habitación vecina (si existe)
 		var coord = RoomData.get_coord_habitacion(habitacion)
 		var coord_vecino = RoomData.calcular_coord_vecina(coord.x, coord.y, direccion)
 		var hab_vecina = RoomData.get_habitacion_en_coord(coord_vecino.x, coord_vecino.y)
@@ -324,6 +341,9 @@ func solicitar_abrir_puerta(habitacion: String, direccion: String):
 			var direccion_opuesta = RoomData.obtener_direccion_opuesta(direccion)
 			RoomData.guardar_estado_habitacion_puerta(hab_vecina, direccion_opuesta, "abierta")
 			sync_puerta_estado.rpc(hab_vecina, direccion_opuesta, "abierta")
+			
+			RoomData.registrar_conexion(habitacion, direccion, hab_vecina)
+			sync_conexion.rpc(habitacion, direccion, hab_vecina)
 		
 		sync_puerta_visual.emit(habitacion, direccion, "abierta")
 		sync_puerta_estado.rpc(habitacion, direccion, "abierta")
@@ -333,49 +353,37 @@ func sync_puerta_estado(habitacion: String, direccion: String, nuevo_estado: Str
 	RoomData.guardar_estado_habitacion_puerta(habitacion, direccion, nuevo_estado)
 	sync_puerta_visual.emit(habitacion, direccion, nuevo_estado)
 
-# ✅ NUEVO: solicitud de habitación nueva con toda la lógica centralizada
 @rpc("any_peer")
 func solicitar_nueva_habitacion(codigo: String, direccion: String, habitacion_origen: String):
 	if multiplayer.is_server():
 		var sender_id = multiplayer.get_remote_sender_id()
-		print("📥 HOST: Cliente pide habitación nueva: código=" + codigo + " dir=" + direccion + " desde=" + habitacion_origen)
 		
-		# 1) Coordenada de origen
 		var coord_origen = RoomData.get_coord_habitacion(habitacion_origen)
 		if coord_origen.x == -999:
-			print("❌ HOST: habitación origen no está en la malla")
+			habitacion_rechazada.rpc_id(sender_id, "Habitación origen no encontrada")
 			return
 		
-		# 2) Coordenada destino
 		var coord_destino = RoomData.calcular_coord_vecina(coord_origen.x, coord_origen.y, direccion)
 		
-		# 3) Validar rango
 		if not RoomData.es_coord_valida(coord_destino.x, coord_destino.y):
-			print("❌ HOST: coord destino fuera del rango")
 			habitacion_rechazada.rpc_id(sender_id, "No puedes ir más allá del límite del tablero")
 			return
 		
-		# 4) ¿Ya hay habitación en esa coord?
 		var hab_existente = RoomData.get_habitacion_en_coord(coord_destino.x, coord_destino.y)
 		if hab_existente != "":
-			print("ℹ️ HOST: Ya hay habitación en esa coord: " + hab_existente)
 			habitacion_rechazada.rpc_id(sender_id, "Ya hay una habitación en esa dirección")
 			return
 		
-		# 5) Validar código
 		var resultado = RoomData.validar_codigo_habitacion(codigo, habitacion_origen)
 		if not resultado["valido"]:
-			print("❌ HOST: código inválido: " + resultado["error"])
 			habitacion_rechazada.rpc_id(sender_id, resultado["error"])
 			return
 		
 		var nombre_habitacion = resultado["nombre_habitacion"]
 		
-		# 6) Generar puertas
 		var direccion_entrada_opuesta = RoomData.obtener_direccion_opuesta(direccion)
 		var estado_puertas = RoomData.generar_puertas_para_habitacion(nombre_habitacion, coord_destino, direccion_entrada_opuesta)
 		
-		# 7) Guardar estado y registrar en malla
 		var estado = {"puertas": {}}
 		for d in estado_puertas:
 			estado["puertas"][d] = {"estado": estado_puertas[d]}
@@ -384,23 +392,21 @@ func solicitar_nueva_habitacion(codigo: String, direccion: String, habitacion_or
 		RoomData.agregar_habitacion_colocada(nombre_habitacion)
 		RoomData.agregar_a_malla(nombre_habitacion, coord_destino.x, coord_destino.y)
 		
-		print("✅ HOST: Habitación " + nombre_habitacion + " registrada en (" + str(coord_destino.x) + "," + str(coord_destino.y) + ")")
-		
-		# 8) Registrar conexión origen↔destino
 		RoomData.registrar_conexion(habitacion_origen, direccion, nombre_habitacion)
+		sync_conexion.rpc(habitacion_origen, direccion, nombre_habitacion)
 		
-		# 9) Forzar puertas opuestas en los vecinos existentes (no en el origen, ya está)
 		var direcciones = ["arriba", "abajo", "izquierda", "derecha"]
 		for d in direcciones:
 			if d == direccion_entrada_opuesta:
-				continue  # ya está forzada
+				continue
 			var coord_vecino = RoomData.calcular_coord_vecina(coord_destino.x, coord_destino.y, d)
 			var hab_vecina = RoomData.get_habitacion_en_coord(coord_vecino.x, coord_vecino.y)
 			if hab_vecina != "":
 				var dir_opuesta = RoomData.obtener_direccion_opuesta(d)
 				RoomData.forzar_puerta_opuesta_en_vecino(hab_vecina, dir_opuesta)
+				RoomData.registrar_conexion(nombre_habitacion, d, hab_vecina)
+				sync_conexion.rpc(nombre_habitacion, d, hab_vecina)
 		
-		# 10) Broadcast
 		habitacion_actualizada_signal.emit(nombre_habitacion)
 		sync_habitacion_nueva.rpc(nombre_habitacion, codigo, direccion, habitacion_origen, estado_puertas, coord_destino)
 
@@ -414,17 +420,12 @@ func sync_habitacion_nueva(nombre_habitacion: String, _codigo: String, direccion
 	RoomData.guardar_estado_habitacion(nombre_habitacion, estado)
 	
 	RoomData.agregar_a_malla(nombre_habitacion, coord.x, coord.y)
-	
-	# Registrar conexión
 	RoomData.registrar_conexion(habitacion_origen, direccion, nombre_habitacion)
-	
-	print("🔄 HOST: (sync) " + nombre_habitacion + " en (" + str(coord.x) + "," + str(coord.y) + ") conectada desde " + habitacion_origen + "[" + direccion + "]")
 	
 	habitacion_actualizada_signal.emit(nombre_habitacion)
 
 @rpc("any_peer")
 func habitacion_rechazada(motivo: String):
-	print("❌ HOST: habitación rechazada: " + motivo)
 	habitacion_rechazada_signal.emit(motivo)
 
 @rpc("any_peer")
