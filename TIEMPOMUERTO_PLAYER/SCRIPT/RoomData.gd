@@ -11,10 +11,8 @@ var conexiones: Dictionary = {}
 var estado_habitaciones: Dictionary = {}
 var posiciones_jugadores: Dictionary = {}
 
-# ✅ Malla de habitaciones: {"0,0": "Room00", "0,-1": "Room05", ...}
 var malla_habitaciones: Dictionary = {}
-
-const LIMITE_MALLA = 5  # 5 a cada lado desde el centro
+const LIMITE_MALLA = 5
 
 func _ready():
 	cargar_datos()
@@ -22,19 +20,15 @@ func _ready():
 
 func cargar_datos() -> bool:
 	if not FileAccess.file_exists(RUTA_HABITACIONES):
-		print("❌ No existe: " + RUTA_HABITACIONES)
 		return false
-	
 	var archivo = FileAccess.open(RUTA_HABITACIONES, FileAccess.READ)
 	if not archivo:
 		return false
-	
 	var contenido = archivo.get_as_text()
 	archivo.close()
 	var datos = JSON.parse_string(contenido)
 	if not datos:
 		return false
-	
 	datos_habitaciones = datos
 	config_general = datos.get("configuracion_general", {})
 	habitaciones = datos.get("habitaciones", {})
@@ -43,15 +37,12 @@ func cargar_datos() -> bool:
 func inicializar_room00_por_defecto():
 	if habitacion_ya_generada("Room00"):
 		return
-	
 	var puertas_iniciales = get_puertas_iniciales("Room00")
 	if puertas_iniciales.size() == 0:
 		puertas_iniciales = ["arriba", "abajo", "izquierda", "derecha"]
-	
 	var estado = {"puertas": {}}
 	for direccion in puertas_iniciales:
 		estado["puertas"][direccion] = {"estado": "cerrada"}
-	
 	guardar_estado_habitacion("Room00", estado)
 	agregar_habitacion_colocada("Room00")
 	agregar_a_malla("Room00", 0, 0)
@@ -83,12 +74,6 @@ func get_coord_habitacion(nombre: String) -> Vector2i:
 		if malla_habitaciones[key] == nombre:
 			return string_a_coord(key)
 	return Vector2i(-999, -999)
-
-func habitacion_en_malla(nombre: String) -> bool:
-	for key in malla_habitaciones:
-		if malla_habitaciones[key] == nombre:
-			return true
-	return false
 
 func es_coord_valida(x: int, y: int) -> bool:
 	return x >= -LIMITE_MALLA and x <= LIMITE_MALLA and y >= -LIMITE_MALLA and y <= LIMITE_MALLA
@@ -206,27 +191,22 @@ func validar_codigo_habitacion(codigo: String, habitacion_actual: String) -> Dic
 	if codigo_limpio == "":
 		resultado["error"] = "Debes ingresar un código"
 		return resultado
-	
 	if not codigo_limpio.is_valid_int():
 		resultado["error"] = "El código debe ser un número"
 		return resultado
 	
 	var numero = int(codigo_limpio)
-	
 	if numero < 0 or numero > 34:
 		resultado["error"] = "Código inválido (00-34)"
 		return resultado
 	
 	var nombre_habitacion = "Room%02d" % numero
-	
 	if nombre_habitacion == habitacion_actual:
 		resultado["error"] = "Ya estás en esa habitación"
 		return resultado
-	
 	if habitacion_ya_colocada(nombre_habitacion):
 		resultado["error"] = "Esa habitación ya está en el tablero"
 		return resultado
-	
 	if not existe_imagen_habitacion(nombre_habitacion):
 		resultado["error"] = "No existe la habitación " + nombre_habitacion
 		return resultado
@@ -263,29 +243,19 @@ func get_jugadores_en_habitacion(nombre_habitacion: String) -> Array:
 	return jugadores_aqui
 
 # ============================================
-# ✅ GENERACIÓN DE PUERTAS (con curva de dificultad)
+# ✅ GENERACIÓN DE PUERTAS (con validación de muros)
 # ============================================
 func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i, direccion_entrada: String) -> Dictionary:
 	var direcciones = ["arriba", "abajo", "izquierda", "derecha"]
 	var estado_puertas = {}
 	
-	# Distancia al centro (la mayor entre |x| e |y|)
 	var distancia = max(abs(coord.x), abs(coord.y))
-	
-	# ✅ Curva de probabilidad:
-	# dist 0 → 1.00 (siempre 4 puertas)
-	# dist 1 → 1.00 (siempre 4 puertas)
-	# dist 2 → 0.85
-	# dist 3 → 0.70
-	# dist 4 → 0.55
-	# dist 5 → 0.40
 	var probabilidad = 1.0
 	if distancia >= 2:
 		probabilidad = max(0.40, 1.0 - ((distancia - 1) * 0.15))
 	
 	print("🎲 Generando puertas para " + nombre_habitacion + " en (" + str(coord.x) + "," + str(coord.y) + ") dist=" + str(distancia) + " prob=" + str(probabilidad))
 	
-	# Primera pasada: decidir cada puerta
 	for direccion in direcciones:
 		if direccion == direccion_entrada:
 			estado_puertas[direccion] = "abierta"
@@ -293,51 +263,66 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 		
 		var coord_vecino = calcular_coord_vecina(coord.x, coord.y, direccion)
 		
-		# Fuera del rango → sin puerta
 		if not es_coord_valida(coord_vecino.x, coord_vecino.y):
 			estado_puertas[direccion] = "sin_puerta"
 			continue
 		
-		# Vecino existente → forzar cerrada
 		var habitacion_vecina = get_habitacion_en_coord(coord_vecino.x, coord_vecino.y)
+		
+		# ✅ FIX: Validar si el vecino tiene una muralla sin puerta
 		if habitacion_vecina != "":
-			estado_puertas[direccion] = "cerrada"
+			var direccion_opuesta = obtener_direccion_opuesta(direccion)
+			var estado_vecino = get_estado_habitacion(habitacion_vecina)
+			var puerta_vecina_estado = ""
+			
+			if not estado_vecino.is_empty():
+				var puertas_vecino = estado_vecino.get("puertas", {})
+				if direccion_opuesta in puertas_vecino:
+					puerta_vecina_estado = puertas_vecino[direccion_opuesta].get("estado", "")
+			
+			# Si el vecino tiene "sin_puerta" o no tiene puerta, esta también debe ser "sin_puerta"
+			if puerta_vecina_estado == "sin_puerta" or puerta_vecina_estado == "":
+				print("   🚫 Vecino " + habitacion_vecina + " no tiene puerta en " + direccion_opuesta + ". Forzando sin_puerta.")
+				estado_puertas[direccion] = "sin_puerta"
+			else:
+				estado_puertas[direccion] = "cerrada"
 			continue
 		
-		# Aleatorio según probabilidad
 		var aleatorio = randf()
 		if aleatorio < probabilidad:
 			estado_puertas[direccion] = "cerrada"
 		else:
 			estado_puertas[direccion] = "sin_puerta"
 	
-	# ✅ Segunda pasada: garantizar mínimo de puertas
-	# Cerca del centro: mínimo 2 puertas (incluyendo la de entrada)
-	# Lejos del centro: mínimo 1 puerta (solo la de entrada)
+	# Garantizar mínimo de puertas (sin contar la de entrada)
 	var minimo_puertas = 2 if distancia <= 3 else 1
-	
 	var puertas_actuales = 0
-	for direccion in estado_puertas:
-		if estado_puertas[direccion] != "sin_puerta":
+	for d in estado_puertas:
+		if estado_puertas[d] != "sin_puerta":
 			puertas_actuales += 1
 	
 	if puertas_actuales < minimo_puertas:
 		var faltan = minimo_puertas - puertas_actuales
-		var direcciones_sin_puerta = []
+		var candidatos = []
+		for d in direcciones:
+			if estado_puertas[d] == "sin_puerta":
+				var coord_v = calcular_coord_vecina(coord.x, coord.y, d)
+				if es_coord_valida(coord_v.x, coord_v.y):
+					var vecino = get_habitacion_en_coord(coord_v.x, coord_v.y)
+					# Solo puede forzar si no hay vecino, o si el vecino tiene puerta
+					if vecino == "":
+						candidatos.append(d)
+					else:
+						var dir_op = obtener_direccion_opuesta(d)
+						var est_v = get_estado_habitacion(vecino)
+						if not est_v.is_empty() and "puertas" in est_v and dir_op in est_v["puertas"]:
+							if est_v["puertas"][dir_op].get("estado", "") != "sin_puerta":
+								candidatos.append(d)
 		
-		for direccion in direcciones:
-			if estado_puertas[direccion] == "sin_puerta":
-				var coord_vecino = calcular_coord_vecina(coord.x, coord.y, direccion)
-				if es_coord_valida(coord_vecino.x, coord_vecino.y):
-					direcciones_sin_puerta.append(direccion)
-		
-		# Mezclar al azar y forzar las primeras N
-		direcciones_sin_puerta.shuffle()
-		for i in range(min(faltan, direcciones_sin_puerta.size())):
-			estado_puertas[direcciones_sin_puerta[i]] = "cerrada"
-			print("   🔧 Forzada puerta " + direcciones_sin_puerta[i] + " para garantizar mínimo " + str(minimo_puertas))
+		candidatos.shuffle()
+		for i in range(min(faltan, candidatos.size())):
+			estado_puertas[candidatos[i]] = "cerrada"
 	
-	# Log del resultado
 	var resumen = ""
 	for d in direcciones:
 		resumen += d + "=" + estado_puertas[d] + " "
@@ -345,7 +330,6 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 	
 	return estado_puertas
 
-# ✅ Forzar la puerta opuesta en una habitación vecina
 func forzar_puerta_opuesta_en_vecino(nombre_vecino: String, direccion_hacia_esta: String):
 	var estado_vecino = get_estado_habitacion(nombre_vecino)
 	if estado_vecino.is_empty():
@@ -353,7 +337,6 @@ func forzar_puerta_opuesta_en_vecino(nombre_vecino: String, direccion_hacia_esta
 	if not "puertas" in estado_vecino:
 		estado_vecino["puertas"] = {}
 	
-	# Si la puerta no existe o está "sin_puerta", la forzamos a cerrada
 	if not direccion_hacia_esta in estado_vecino["puertas"]:
 		estado_vecino["puertas"][direccion_hacia_esta] = {"estado": "cerrada"}
 	elif estado_vecino["puertas"][direccion_hacia_esta].get("estado", "") == "sin_puerta":

@@ -25,7 +25,6 @@ const FICHA_INTERACTUAR = preload("res://SPRITE/INTERACTUAR.tscn")
 const FICHA_OBJETO = preload("res://SPRITE/OBJETO.tscn")
 
 var mi_indice_jugador: int = 0
-
 var factor_alejamiento: float = 0.9
 var zoom_minimo: float = 0.9
 var zoom_maximo: float = 1.8
@@ -90,7 +89,6 @@ var tamaño_contenedor_avatar: Vector2 = Vector2(50, 60)
 var tamaño_label: Vector2 = Vector2(40, 15)
 
 var estado_fichas: Dictionary = {}
-
 var zoom_actual: float = 1.0
 var posicion_inicial_mundo: Vector2 = Vector2.ZERO
 var offset_movimiento: Vector2 = Vector2.ZERO
@@ -123,7 +121,6 @@ func _ready():
 	RoomData.agregar_habitacion_colocada("Room00")
 	RoomData.inicializar_posiciones_jugadores(todos_jugadores, "Room00")
 	
-	# ✅ Conectar TODAS las señales
 	if not Network.sync_puerta_visual.is_connected(_on_sync_puerta_visual):
 		Network.sync_puerta_visual.connect(_on_sync_puerta_visual)
 	
@@ -139,11 +136,9 @@ func _ready():
 	if not Network.habitacion_rechazada_signal.is_connected(_on_habitacion_rechazada):
 		Network.habitacion_rechazada_signal.connect(_on_habitacion_rechazada)
 	
-	# ✅ NUEVO: conectar señal de posiciones
 	if not Network.posiciones_actualizadas_signal.is_connected(_on_posiciones_actualizadas):
 		Network.posiciones_actualizadas_signal.connect(_on_posiciones_actualizadas)
 	
-	# Pedir estado al arrancar
 	esperando_estado_completo = true
 	Network.pedir_estado_completo()
 	var espera = 0
@@ -156,43 +151,33 @@ func _ready():
 	await get_tree().process_frame
 	
 	cargar_puertas_iniciales("Room00")
-	
 	await cargar_avatares_en_habitacion("Room00")
 	cargar_fila_avatares()
 	
 	configurar_ventana_codigo()
 	set_process_input(true)
-	
 	print("=== JUGADOR: Listo ===")
 
 func _on_estado_completo_recibido(_paquete: Dictionary):
-	print("🔄 JUGADOR: _on_estado_completo_recibido")
 	esperando_estado_completo = false
 	await refrescar_habitacion()
 
-# ✅ NUEVO: cuando el host manda posiciones actualizadas
 func _on_posiciones_actualizadas():
-	print("📍 JUGADOR: Posiciones actualizadas, refrescando avatares")
 	await cargar_avatares_en_habitacion(habitacion_actual)
 
 func _on_habitacion_actualizada(nombre_habitacion: String):
 	if esperando_habitacion_nueva:
 		if RoomData.hay_conexion(habitacion_origen_pendiente, direccion_puerta_pendiente):
 			var hab_destino = RoomData.get_habitacion_conectada(habitacion_origen_pendiente, direccion_puerta_pendiente)
-			print("🚀 Auto-movimiento a " + hab_destino)
-			
 			ocultar_ventana_codigo()
 			btn_ok.disabled = false
 			esperando_habitacion_nueva = false
-			
 			var dir = direccion_puerta_pendiente
 			direccion_puerta_pendiente = ""
-			
 			await cambiar_habitacion(hab_destino, dir)
 			return
 	
 	await cargar_avatares_en_habitacion(habitacion_actual)
-	
 	if nombre_habitacion == habitacion_actual:
 		await refrescar_habitacion()
 
@@ -206,6 +191,7 @@ func _on_habitacion_rechazada(motivo: String):
 	btn_ok.disabled = false
 	esperando_habitacion_nueva = false
 
+# ✅ NUEVO: Refresco doble para asegurar que se actualicen los estados de las puertas
 func refrescar_habitacion():
 	for child in capa_puertas.get_children():
 		child.queue_free()
@@ -213,6 +199,7 @@ func refrescar_habitacion():
 		child.queue_free()
 	
 	await get_tree().process_frame
+	await get_tree().process_frame # Doble frame para asegurar queue_free
 	
 	var estado = RoomData.get_estado_habitacion(habitacion_actual)
 	if not estado.is_empty():
@@ -419,20 +406,12 @@ func investigar_puerta(direccion: String):
 	abrir_puerta(direccion)
 
 func caminar_por_puerta(direccion: String):
-	print("")
-	print("║  JUGADOR: CAMINAR POR PUERTA")
-	print("   Habitación: " + habitacion_actual + " | Dir: " + direccion)
-	print("   🔍 hay_conexion: " + str(RoomData.hay_conexion(habitacion_actual, direccion)))
-	
 	if RoomData.hay_conexion(habitacion_actual, direccion):
 		var habitacion_destino = RoomData.get_habitacion_conectada(habitacion_actual, direccion)
-		print("   ✅ Conexión encontrada: " + habitacion_destino)
 		cambiar_habitacion(habitacion_destino, direccion)
 	else:
-		print("   ❌ Sin conexión, pidiendo código")
 		direccion_puerta_pendiente = direccion
 		mostrar_ventana_codigo()
-	print("")
 
 func mostrar_ventana_codigo():
 	ventana_codigo.visible = true
@@ -466,8 +445,6 @@ func procesar_codigo():
 		lbl_error.text = "❌ " + resultado["error"]
 		lbl_error.add_theme_color_override("font_color", Color(1, 0.2, 0.2))
 		return
-	
-	print("✅ Código válido localmente. Enviando al host...")
 	
 	esperando_habitacion_nueva = true
 	habitacion_origen_pendiente = habitacion_actual
@@ -505,6 +482,14 @@ func cambiar_habitacion(nueva_habitacion: String, direccion_entrada_real: String
 	await get_tree().process_frame
 	
 	await cargar_avatares_en_habitacion(nueva_habitacion)
+	
+	# ✅ Pedimos estado fresco al host para asegurar que las puertas se dibujen bien
+	esperando_estado_completo = true
+	Network.pedir_estado_completo()
+	var espera = 0
+	while esperando_estado_completo and espera < 20:
+		await get_tree().create_timer(0.1).timeout
+		espera += 1
 	
 	if RoomData.habitacion_ya_generada(nueva_habitacion):
 		cargar_puertas_guardadas(nueva_habitacion)
