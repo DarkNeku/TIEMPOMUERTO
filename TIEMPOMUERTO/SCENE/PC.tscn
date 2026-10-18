@@ -58,20 +58,31 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 100
 text = "SALAS"
 
-[node name="LBL_JUGADOR" type="Label" parent="Panel" unique_id=1997754027]
+[node name="LABEL" type="Label" parent="Panel" unique_id=1997754027]
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
 theme_override_font_sizes/font_size = 40
 text = "JUGADOR       "
 
-[node name="LBL_TIEMPO" type="Label" parent="Panel" unique_id=1397682424]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -261.0
+[node name="LBL_JUGADOR" type="Label" parent="Panel" unique_id=1722020674]
+layout_mode = 0
+offset_left = 210.0
+offset_right = 250.0
 offset_bottom = 55.0
-grow_horizontal = 0
 theme_override_font_sizes/font_size = 40
-text = "TIEMPO:                   "
+
+[node name="LABEL2" type="Label" parent="Panel" unique_id=1397682424]
+layout_mode = 0
+offset_left = 900.0
+offset_right = 1071.0
+offset_bottom = 55.0
+theme_override_font_sizes/font_size = 40
+text = "TIEMPO: "
+
+[node name="LBL_TIEMPO" type="Label" parent="Panel" unique_id=133237462]
+layout_mode = 0
+offset_left = 1100.0
+offset_right = 1111.0
+offset_bottom = 55.0
+theme_override_font_sizes/font_size = 40

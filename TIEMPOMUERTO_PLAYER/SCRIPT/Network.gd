@@ -14,6 +14,7 @@ var sala_actual: String = ""
 var conectado: bool = false
 
 var nombres_reservados: Dictionary = {}
+var turno_actual: String = ""
 
 var _udp_host: PacketPeerUDP = null
 var _udp_busqueda: PacketPeerUDP = null
@@ -26,6 +27,7 @@ signal sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado: S
 signal estado_completo_recibido(paquete: Dictionary)
 signal habitacion_rechazada_signal(motivo: String)
 signal posiciones_actualizadas_signal
+signal turno_iniciado_signal(nombre_jugador: String)
 
 func _ready():
 	print("=== NETWORK: INICIALIZADO (CELULAR-CLIENTE) ===")
@@ -39,17 +41,13 @@ func _process(_delta: float) -> void:
 func preparar_cliente(ip: String, port: int = PUERTO_JUEGO_DEFECTO) -> bool:
 	if ip.strip_edges() == "":
 		return false
-	
 	desconectar()
 	_puerto_juego = port
-	
 	peer = ENetMultiplayerPeer.new()
 	var result: int = peer.create_client(ip.strip_edges(), port)
-	
 	if result != OK:
 		peer = null
 		return false
-	
 	multiplayer.multiplayer_peer = peer
 	return true
 
@@ -103,14 +101,12 @@ func construir_candidatos(ip_extra: String = "") -> Array[String]:
 	var mis_ips: Array[String] = get_ips_ipv4()
 	
 	candidatos.append("255.255.255.255")
-	
 	for ip in mis_ips:
 		var partes: PackedStringArray = ip.split(".")
 		if partes.size() == 4:
 			candidatos.append(partes[0] + "." + partes[1] + "." + partes[2] + ".255")
 	
 	candidatos.append("127.0.0.1")
-	
 	var extra: String = ip_extra.strip_edges()
 	if extra != "" and candidatos.find(extra) == -1:
 		candidatos.append(extra)
@@ -223,6 +219,12 @@ func iniciar_partida():
 	get_tree().change_scene_to_file("res://SCENE/JUGADOR.tscn")
 
 @rpc("authority")
+func sync_turno_inicial(nombre: String):
+	turno_actual = nombre
+	print("📥 CLIENTE: Turno inicial recibido: " + nombre)
+	turno_iniciado_signal.emit(nombre)
+
+@rpc("authority")
 func recibir_jugadores_partida(jugadores_array: Array):
 	Global.jugadores = jugadores_array
 	if Global.data_manager:
@@ -271,9 +273,6 @@ func sync_reservas(reservados: Dictionary):
 	nombres_reservados = reservados
 	reservas_actualizadas.emit(reservados)
 
-# =====================================================================
-#  ✅ NUEVO: sincronización de posiciones
-# =====================================================================
 @rpc("any_peer")
 func sync_posiciones(posiciones: Dictionary):
 	print("📍 CLIENTE: sync_posiciones recibido: " + str(posiciones))
@@ -382,7 +381,7 @@ func sync_jugador_movido(nombre_jugador: String, habitacion_destino: String):
 	habitacion_actualizada_signal.emit(habitacion_destino)
 
 # =====================================================================
-#  COLORES
+#  COLORES Y GETTERS
 # =====================================================================
 
 func enviar_mi_color(nombre: String, color: String):
@@ -402,9 +401,6 @@ func sync_colores(nombre: String, color: String):
 func color_ya_usado(color: String, jugador_que_lo_tiene: String):
 	color_ya_usado_signal.emit(color, jugador_que_lo_tiene)
 
-# =====================================================================
-#  GETTERS
-# =====================================================================
 func get_salas() -> Array:
 	return salas.keys()
 

@@ -14,6 +14,7 @@ var sala_actual: String = ""
 var conectado: bool = false
 
 var nombres_reservados: Dictionary = {}
+var turno_actual: String = ""
 
 var _udp_host: PacketPeerUDP = null
 var _udp_busqueda: PacketPeerUDP = null
@@ -23,6 +24,7 @@ var _hosts_encontrados: Array[String] = []
 signal jugadores_actualizados_signal
 signal habitacion_actualizada_signal
 signal sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado: String)
+signal turno_iniciado_signal(nombre_jugador: String)
 
 func _ready():
 	print("=== NETWORK: INICIALIZADO (PC-HOST) ===")
@@ -132,7 +134,7 @@ func enviar_estado_completo_a(id: int):
 	sync_estado_completo.rpc_id(id, paquete)
 
 # =====================================================================
-#  RPCs
+#  RPCs BASE
 # =====================================================================
 
 @rpc("any_peer")
@@ -193,9 +195,28 @@ func iniciar_juego():
 
 @rpc("authority")
 func iniciar_partida():
-	recibir_jugadores_partida.rpc(Global.get_jugadores())
-	await get_tree().create_timer(0.5).timeout
 	get_tree().change_scene_to_file("res://SCENE/PC.tscn")
+	recibir_jugadores_partida.rpc(Global.get_jugadores())
+
+# ✅ NUEVA FUNCIÓN: El PC la llama cuando termina de cargar la escena
+func notificar_pc_listo():
+	print("✅ HOST: PC avisó que está listo. Eligiendo turno...")
+	var conectados = []
+	for j in Global.get_jugadores():
+		if j.get("conectado", false) == true:
+			conectados.append(j.get("nombre", ""))
+	
+	if conectados.size() > 0:
+		conectados.shuffle()
+		turno_actual = conectados[0]
+		print("🎲 TURNO INICIAL ELEGIDO: " + turno_actual)
+		
+		turno_iniciado_signal.emit(turno_actual)
+		sync_turno_inicial.rpc(turno_actual)
+
+@rpc("authority")
+func sync_turno_inicial(nombre: String):
+	turno_iniciado_signal.emit(nombre)
 
 @rpc("authority")
 func recibir_jugadores_partida(_jugadores_array: Array):
@@ -276,7 +297,7 @@ func sync_posiciones(_posiciones: Dictionary):
 	pass
 
 # =====================================================================
-#  SINCRONIZACIÓN DE ESTADO
+#  SINCRONIZACIÓN
 # =====================================================================
 
 @rpc("any_peer")
@@ -312,7 +333,6 @@ func solicitar_abrir_puerta(habitacion: String, direccion: String):
 			var direccion_opuesta = RoomData.obtener_direccion_opuesta(direccion)
 			RoomData.guardar_estado_habitacion_puerta(hab_vecina, direccion_opuesta, "abierta")
 			sync_puerta_estado.rpc(hab_vecina, direccion_opuesta, "abierta")
-			# ✅ FIX: Emitir señal local para el PC
 			sync_puerta_visual.emit(hab_vecina, direccion_opuesta, "abierta")
 			
 			RoomData.registrar_conexion(habitacion, direccion, hab_vecina)
@@ -365,41 +385,36 @@ func solicitar_nueva_habitacion(codigo: String, direccion: String, habitacion_or
 		RoomData.agregar_habitacion_colocada(nombre_habitacion)
 		RoomData.agregar_a_malla(nombre_habitacion, coord_destino.x, coord_destino.y)
 		
-		# ✅ FIX 1: Abrir la puerta de ORIGEN
 		RoomData.guardar_estado_habitacion_puerta(habitacion_origen, direccion, "abierta")
 		sync_puerta_estado.rpc(habitacion_origen, direccion, "abierta")
-		# ✅ FALTA ESTO: Emitir señal local para que el PC refresque
 		sync_puerta_visual.emit(habitacion_origen, direccion, "abierta")
 		
-		# Registrar conexión origen↔destino
 		RoomData.registrar_conexion(habitacion_origen, direccion, nombre_habitacion)
 		sync_conexion.rpc(habitacion_origen, direccion, nombre_habitacion)
 		
-		# ✅ FIX 2: Forzar puertas opuestas en vecinos SOLO SI la nueva habitación tiene puerta
 		var direcciones = ["arriba", "abajo", "izquierda", "derecha"]
 		for d in direcciones:
 			if d == direccion_entrada_opuesta:
 				continue
+				
 			var coord_vecino = RoomData.calcular_coord_vecina(coord_destino.x, coord_destino.y, d)
 			var hab_vecina = RoomData.get_habitacion_en_coord(coord_vecino.x, coord_vecino.y)
+			
 			if hab_vecina != "":
 				var dir_opuesta = RoomData.obtener_direccion_opuesta(d)
 				var estado_nueva_dir = estado_puertas.get(d, "sin_puerta")
 				
 				if estado_nueva_dir != "sin_puerta":
-					# Solo forzar si la nueva habitación tiene puerta
 					RoomData.forzar_puerta_opuesta_en_vecino(hab_vecina, dir_opuesta)
-					# ✅ FIX: Abrir puerta opuesta visualmente
-					RoomData.guardar_estado_habitacion_puerta(hab_vecina, dir_opuesta, "abierta")
-					sync_puerta_estado.rpc(hab_vecina, dir_opuesta, "abierta")
-					sync_puerta_visual.emit(hab_vecina, dir_opuesta, "abierta")
+					var estado_vecino = RoomData.get_estado_habitacion(hab_vecina)
+					var puerta_vecina_estado = estado_vecino["puertas"][dir_opuesta]["estado"]
+					
+					sync_puerta_estado.rpc(hab_vecina, dir_opuesta, puerta_vecina_estado)
+					sync_puerta_visual.emit(hab_vecina, dir_opuesta, puerta_vecina_estado)
 					
 					RoomData.registrar_conexion(nombre_habitacion, d, hab_vecina)
 					sync_conexion.rpc(nombre_habitacion, d, hab_vecina)
-					print("   🔧 Conexión forzada: " + nombre_habitacion + "[" + d + "] ↔ " + hab_vecina)
-				else:
-					print("   🚫 Nueva hab sin puerta " + d + " → no forzar en vecino " + hab_vecina)
-		
+					
 		habitacion_actualizada_signal.emit(nombre_habitacion)
 		sync_habitacion_nueva.rpc(nombre_habitacion, codigo, direccion, habitacion_origen, estado_puertas, coord_destino)
 
@@ -434,7 +449,7 @@ func sync_jugador_movido(nombre_jugador: String, habitacion_destino: String):
 	habitacion_actualizada_signal.emit(habitacion_destino)
 
 # =====================================================================
-#  COLORES
+#  COLORES Y GETTERS
 # =====================================================================
 
 @rpc("any_peer")
@@ -460,9 +475,6 @@ func sync_colores(nombre: String, color: String):
 func color_ya_usado(color: String, jugador_que_lo_tiene: String):
 	color_ya_usado_signal.emit(color, jugador_que_lo_tiene)
 
-# =====================================================================
-#  GETTERS
-# =====================================================================
 func get_salas() -> Array:
 	return salas.keys()
 

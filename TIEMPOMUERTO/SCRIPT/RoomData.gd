@@ -243,7 +243,7 @@ func get_jugadores_en_habitacion(nombre_habitacion: String) -> Array:
 	return jugadores_aqui
 
 # ============================================
-# ✅ GENERACIÓN DE PUERTAS (con validación de muros)
+# ✅ GENERACIÓN DE PUERTAS (FIX: la entrada no se sobreescribe)
 # ============================================
 func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i, direccion_entrada: String) -> Dictionary:
 	var direcciones = ["arriba", "abajo", "izquierda", "derecha"]
@@ -256,7 +256,9 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 	
 	print("🎲 Generando puertas para " + nombre_habitacion + " en (" + str(coord.x) + "," + str(coord.y) + ") dist=" + str(distancia) + " prob=" + str(probabilidad))
 	
+	# Primera pasada: decidir cada puerta
 	for direccion in direcciones:
+		# ✅ La puerta de entrada SIEMPRE abierta y no se toca después
 		if direccion == direccion_entrada:
 			estado_puertas[direccion] = "abierta"
 			continue
@@ -269,7 +271,6 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 		
 		var habitacion_vecina = get_habitacion_en_coord(coord_vecino.x, coord_vecino.y)
 		
-		# ✅ FIX: Validar si el vecino tiene una muralla sin puerta
 		if habitacion_vecina != "":
 			var direccion_opuesta = obtener_direccion_opuesta(direccion)
 			var estado_vecino = get_estado_habitacion(habitacion_vecina)
@@ -280,7 +281,6 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 				if direccion_opuesta in puertas_vecino:
 					puerta_vecina_estado = puertas_vecino[direccion_opuesta].get("estado", "")
 			
-			# Si el vecino tiene "sin_puerta" o no tiene puerta, esta también debe ser "sin_puerta"
 			if puerta_vecina_estado == "sin_puerta" or puerta_vecina_estado == "":
 				print("   🚫 Vecino " + habitacion_vecina + " no tiene puerta en " + direccion_opuesta + ". Forzando sin_puerta.")
 				estado_puertas[direccion] = "sin_puerta"
@@ -294,22 +294,27 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 		else:
 			estado_puertas[direccion] = "sin_puerta"
 	
-	# Garantizar mínimo de puertas (sin contar la de entrada)
+	# ✅ Segunda pasada: garantizar mínimo de puertas (SIN contar ni tocar la entrada)
 	var minimo_puertas = 2 if distancia <= 3 else 1
 	var puertas_actuales = 0
-	for d in estado_puertas:
+	
+	for d in direcciones:
+		if d == direccion_entrada:
+			continue  # No contar la entrada
 		if estado_puertas[d] != "sin_puerta":
 			puertas_actuales += 1
 	
 	if puertas_actuales < minimo_puertas:
 		var faltan = minimo_puertas - puertas_actuales
 		var candidatos = []
+		
 		for d in direcciones:
+			if d == direccion_entrada:
+				continue  # No forzar la entrada
 			if estado_puertas[d] == "sin_puerta":
 				var coord_v = calcular_coord_vecina(coord.x, coord.y, d)
 				if es_coord_valida(coord_v.x, coord_v.y):
 					var vecino = get_habitacion_en_coord(coord_v.x, coord_v.y)
-					# Solo puede forzar si no hay vecino, o si el vecino tiene puerta
 					if vecino == "":
 						candidatos.append(d)
 					else:

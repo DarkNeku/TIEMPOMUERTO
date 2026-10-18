@@ -63,12 +63,16 @@ const FICHA_CAMINAR = preload("res://SPRITE/CAMINAR.tscn")
 const FICHA_INTERACTUAR = preload("res://SPRITE/INTERACTUAR.tscn")
 const FICHA_OBJETO = preload("res://SPRITE/OBJETO.tscn")
 
+var lbl_jugador: Label = null
+
 func _ready():
 	print("=== PC: Iniciando ===")
 	
 	panel_mapa = get_node("Panel/PANEL_MAPA")
 	mapa_contenido = get_node("Panel/PANEL_MAPA/MAPA_CONTENIDO")
 	panel_mapa.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	lbl_jugador = find_child("LBL_JUGADOR", true, false)
 	
 	RoomData.inicializar_room00_por_defecto()
 	
@@ -81,10 +85,25 @@ func _ready():
 	if not Network.habitacion_actualizada_signal.is_connected(_on_habitacion_actualizada):
 		Network.habitacion_actualizada_signal.connect(_on_habitacion_actualizada)
 	
+	if not Network.turno_iniciado_signal.is_connected(_on_turno_iniciado):
+		Network.turno_iniciado_signal.connect(_on_turno_iniciado)
+	
 	crear_tablero()
 	await refrescar_tablero_completo()
 	
 	centrar_en_room00()
+	
+	# ✅ Usamos call_deferred para asegurar que se ejecute 1 frame después
+	# de que todo esté cargado y el Host pueda elegir el turno.
+	if Network.has_method("notificar_pc_listo"):
+		Network.call_deferred("notificar_pc_listo")
+
+func _on_turno_iniciado(nombre_jugador: String):
+	if is_instance_valid(lbl_jugador):
+		lbl_jugador.text = "TURNO DE: " + nombre_jugador
+		print("PC: Mostrando turno en pantalla: " + nombre_jugador)
+	else:
+		print("⚠️ PC: No se encontró el Label LBL_JUGADOR.")
 
 func crear_tablero():
 	for child in mapa_contenido.get_children():
@@ -205,6 +224,7 @@ func dibujar_puertas_y_fichas_habitacion(nombre_habitacion: String):
 		if is_instance_valid(child):
 			child.queue_free()
 	
+	await get_tree().process_frame
 	await get_tree().process_frame
 	
 	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas):
@@ -403,9 +423,6 @@ func configurar_animacion_avatar(avatar: Node, color: String):
 		animated_sprite.frame = 0
 		animated_sprite.play()
 
-# ============================================
-# ✅ NUEVO: refrescar solo los avatares de TODAS las habitaciones
-# ============================================
 func refrescar_todos_los_avatares():
 	for nombre_hab in habitaciones_nodos.keys():
 		if is_instance_valid(habitaciones_nodos.get(nombre_hab)):
@@ -415,13 +432,7 @@ func _on_jugadores_actualizados():
 	await refrescar_todos_los_avatares()
 
 func _on_habitacion_actualizada(_nombre_habitacion: String):
-	# ✅ Refrescar solo avatares, no todo el tablero
-	# Esto elimina avatares viejos y los redibuja donde corresponde.
-	await refrescar_todos_los_avatares()
-	
-	# Si la habitación no existe en el tablero (fue recién agregada), refrescar todo
-	if not _nombre_habitacion in habitaciones_nodos:
-		await refrescar_tablero_completo()
+	await refrescar_tablero_completo()
 
 func _on_sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado: String):
 	if not habitacion in habitaciones_nodos:
@@ -436,35 +447,39 @@ func _on_sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado:
 	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas):
 		return
 	
-	var puerta_node = capa_puertas.get_node_or_null("PUERTA_" + direccion.to_upper())
-	if puerta_node and is_instance_valid(puerta_node):
-		puerta_node.queue_free()
-		await get_tree().process_frame
-	
-	if not is_instance_valid(capa_puertas):
-		return
-	
-	var posicion = RoomData.get_posicion_puerta(direccion)
-	crear_puerta_en_room(direccion, posicion, nuevo_estado, capa_puertas)
-	
-	var nombre_base = "FICHA_" + direccion.to_upper()
+	for child in capa_puertas.get_children():
+		if is_instance_valid(child):
+			child.queue_free()
 	for child in capa_fichas.get_children():
-		if is_instance_valid(child) and child.name.begins_with(nombre_base):
+		if is_instance_valid(child):
 			child.queue_free()
 	
 	await get_tree().process_frame
+	await get_tree().process_frame
 	
-	if not is_instance_valid(capa_fichas):
+	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas):
 		return
 	
-	if nuevo_estado == "abierta":
-		crear_ficha_en_room(direccion, "caminar", posicion, capa_fichas)
-	else:
-		crear_ficha_en_room(direccion, "lupa", posicion, capa_fichas)
+	var estado = RoomData.get_estado_habitacion(habitacion)
+	if estado.is_empty():
+		return
+	
+	var puertas = estado.get("puertas", {})
+	for dir in puertas:
+		var info = puertas[dir]
+		var estado_puerta = info.get("estado", "cerrada")
+		var posicion = RoomData.get_posicion_puerta(dir)
+		
+		if estado_puerta == "sin_puerta":
+			continue
+		
+		crear_puerta_en_room(dir, posicion, estado_puerta, capa_puertas)
+		
+		if estado_puerta == "abierta":
+			crear_ficha_en_room(dir, "caminar", posicion, capa_fichas)
+		else:
+			crear_ficha_en_room(dir, "lupa", posicion, capa_fichas)
 
-# ============================================
-# INPUT (zoom centrado en mouse)
-# ============================================
 func _input(event: InputEvent):
 	if event is InputEventMouseButton:
 		var pos_mouse = get_global_mouse_position()
@@ -490,10 +505,7 @@ func _input(event: InputEvent):
 
 func aplicar_zoom_en_posicion(nuevo_zoom: float, punto_pantalla: Vector2):
 	var zoom_clamped = clamp(nuevo_zoom, zoom_minimo, zoom_maximo)
-	
 	var mundo_bajo_punto = (punto_pantalla - mapa_contenido.position) / zoom_actual
-	
 	zoom_actual = zoom_clamped
 	mapa_contenido.scale = Vector2(zoom_actual, zoom_actual)
-	
 	mapa_contenido.position = punto_pantalla - (mundo_bajo_punto * zoom_actual)
