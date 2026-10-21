@@ -295,3 +295,131 @@ grow_horizontal = 0
 grow_vertical = 0
 theme_override_font_sizes/font_size = 35
 text = "CANCELAR"
+
+[node name="PANEL_RADIO" type="Panel" parent="." unique_id=609180373]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 780.0
+offset_right = 780.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PANEL_RADIO" unique_id=376633684]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="PANEL_RADIO/VBoxContainer" unique_id=1128542743]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="PANEL_RADIO/VBoxContainer/Panel" unique_id=560701073]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -115.0
+offset_top = -34.5
+offset_right = 115.0
+offset_bottom = 34.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 50
+text = "RADIO"
+horizontal_alignment = 1
+
+[node name="PANEL_BATERIAS" type="Panel" parent="PANEL_RADIO/VBoxContainer" unique_id=663833502]
+custom_minimum_size = Vector2(0, 1100)
+layout_mode = 2
+
+[node name="PANEL_BOTONES_BATERIA" type="Panel" parent="PANEL_RADIO/VBoxContainer" unique_id=1685872924]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BTN_VOLVER_RADIO" type="Button" parent="PANEL_RADIO/VBoxContainer/PANEL_BOTONES_BATERIA" unique_id=831272327]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -98.5
+offset_top = -38.5
+offset_right = 98.5
+offset_bottom = 38.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 50
+text = "VOLVER"
+
+[node name="PANEL_MOCHILA" type="Panel" parent="." unique_id=562055712]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -780.0
+offset_right = -780.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PANEL_MOCHILA" unique_id=1852778958]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="PANEL_MOCHILA/VBoxContainer" unique_id=682899178]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label" type="Label" parent="PANEL_MOCHILA/VBoxContainer/Panel" unique_id=1726531319]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -115.0
+offset_top = -34.5
+offset_right = 115.0
+offset_bottom = 34.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 50
+text = "MOCHILA"
+horizontal_alignment = 1
+
+[node name="PANEL_INVENTARIO" type="Panel" parent="PANEL_MOCHILA/VBoxContainer" unique_id=178947047]
+custom_minimum_size = Vector2(0, 1100)
+layout_mode = 2
+
+[node name="PANEL_BOTONES_MOCHILA" type="Panel" parent="PANEL_MOCHILA/VBoxContainer" unique_id=1467521492]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BTN_VOLVER_MOCHILA" type="Button" parent="PANEL_MOCHILA/VBoxContainer/PANEL_BOTONES_MOCHILA" unique_id=335953682]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -98.5
+offset_top = -38.5
+offset_right = 98.5
+offset_bottom = 38.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 50
+text = "VOLVER"
