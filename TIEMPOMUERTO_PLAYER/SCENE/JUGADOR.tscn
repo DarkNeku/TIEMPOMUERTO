@@ -21,6 +21,8 @@ bg_color = Color(0.6, 0.6, 0.6, 0)
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5ochc"]
 bg_color = Color(0.6, 0.6, 0.6, 0)
 
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_quf6j"]
+
 [node name="JUGADOR" type="Control" unique_id=87017074]
 layout_mode = 3
 anchors_preset = 15
@@ -353,6 +355,8 @@ offset_right = 4.0
 offset_bottom = 4.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_font_sizes/font_size = 100
+theme_override_styles/normal = SubResource("StyleBoxTexture_quf6j")
 text = "RADIO"
 
 [node name="PANEL_BOTONES_BATERIA" type="Panel" parent="PANEL_RADIO/VBoxContainer" unique_id=1685872924]
