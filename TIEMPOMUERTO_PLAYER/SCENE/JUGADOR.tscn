@@ -3,6 +3,8 @@
 [ext_resource type="Texture2D" uid="uid://dmxuuega31vv8" path="res://ASSET/botones/MOCHILA.png" id="1_5ochc"]
 [ext_resource type="Script" uid="uid://d1khtoy8lqdg4" path="res://SCRIPT/JUGADOR.gd" id="1_8vrgc"]
 [ext_resource type="Texture2D" uid="uid://dooyuqeq4fbfw" path="res://ASSET/botones/RADIO.png" id="2_8vrgc"]
+[ext_resource type="Texture2D" uid="uid://dgdcc47f3ym3a" path="res://ASSET/button_round/transparent_cropped/button_rnd_blue.png" id="4_4vmy2"]
+[ext_resource type="Texture2D" uid="uid://bvv56elohynf0" path="res://ASSET/button_round/transparent_cropped/button_rnd_red_pressed.png" id="5_4vmy2"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_5yy8r"]
 bg_color = Color(0.6, 0.6, 0.6, 0)
@@ -22,6 +24,13 @@ bg_color = Color(0.6, 0.6, 0.6, 0)
 bg_color = Color(0.6, 0.6, 0.6, 0)
 
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_quf6j"]
+texture = ExtResource("4_4vmy2")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ba8o6"]
+texture = ExtResource("5_4vmy2")
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_5yy8r"]
+texture = ExtResource("4_4vmy2")
 
 [node name="JUGADOR" type="Control" unique_id=87017074]
 layout_mode = 3
@@ -342,22 +351,22 @@ horizontal_alignment = 1
 custom_minimum_size = Vector2(0, 1100)
 layout_mode = 2
 
-[node name="Button" type="Button" parent="PANEL_RADIO/VBoxContainer/PANEL_BATERIAS" unique_id=2015934581]
+[node name="BTN_COM_RADIO" type="Button" parent="PANEL_RADIO/VBoxContainer/PANEL_BATERIAS" unique_id=2015934581]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -4.0
-offset_top = -4.0
-offset_right = 4.0
-offset_bottom = 4.0
+offset_left = -205.0
+offset_top = -317.0
+offset_right = 195.0
+offset_bottom = 83.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_font_sizes/font_size = 100
 theme_override_styles/normal = SubResource("StyleBoxTexture_quf6j")
-text = "RADIO"
+theme_override_styles/pressed = SubResource("StyleBoxTexture_ba8o6")
+theme_override_styles/hover = SubResource("StyleBoxTexture_5yy8r")
 
 [node name="PANEL_BOTONES_BATERIA" type="Panel" parent="PANEL_RADIO/VBoxContainer" unique_id=1685872924]
 layout_mode = 2
