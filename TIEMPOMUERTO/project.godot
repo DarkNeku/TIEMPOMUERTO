@@ -21,7 +21,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Network="*res://SCRIPT/Network.gd"
+DataManager="*uid://bcf5puef3gxg5"
 Global="*res://SCRIPT/Global.gd"
 RoomData="*uid://8a4lk6r20t71"
 

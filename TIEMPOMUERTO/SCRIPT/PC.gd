@@ -64,46 +64,75 @@ const FICHA_INTERACTUAR = preload("res://SPRITE/INTERACTUAR.tscn")
 const FICHA_OBJETO = preload("res://SPRITE/OBJETO.tscn")
 
 var lbl_jugador: Label = null
+var lbl_tiempo: Label = null
+var txt_nfc: LineEdit = null
+var indice_turno_actual: int = 0
 
 func _ready():
-	print("=== PC: Iniciando ===")
+	print("=== PC: Iniciando Tablero DM ===")
 	
 	panel_mapa = get_node("Panel/PANEL_MAPA")
 	mapa_contenido = get_node("Panel/PANEL_MAPA/MAPA_CONTENIDO")
 	panel_mapa.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	lbl_jugador = find_child("LBL_JUGADOR", true, false)
+	lbl_tiempo = find_child("LBL_TIEMPO", true, false)
+	txt_nfc = find_child("TXT_NFC", true, false)
+	
+	if txt_nfc:
+		txt_nfc.text_submitted.connect(_on_nfc_escaneado)
+		txt_nfc.grab_focus() # Para que el DM pueda escribir directo
 	
 	RoomData.inicializar_room00_por_defecto()
 	
-	if not Network.sync_puerta_visual.is_connected(_on_sync_puerta_visual):
-		Network.sync_puerta_visual.connect(_on_sync_puerta_visual)
-	
-	if not Network.jugadores_actualizados_signal.is_connected(_on_jugadores_actualizados):
-		Network.jugadores_actualizados_signal.connect(_on_jugadores_actualizados)
-	
-	if not Network.habitacion_actualizada_signal.is_connected(_on_habitacion_actualizada):
-		Network.habitacion_actualizada_signal.connect(_on_habitacion_actualizada)
-	
-	if not Network.turno_iniciado_signal.is_connected(_on_turno_iniciado):
-		Network.turno_iniciado_signal.connect(_on_turno_iniciado)
-	
 	crear_tablero()
+	await get_tree().process_frame
 	await refrescar_tablero_completo()
-	
 	centrar_en_room00()
 	
-	# ✅ Usamos call_deferred para asegurar que se ejecute 1 frame después
-	# de que todo esté cargado y el Host pueda elegir el turno.
-	if Network.has_method("notificar_pc_listo"):
-		Network.call_deferred("notificar_pc_listo")
+	# Iniciar turno con el primer jugador de la lista
+	iniciar_turno(0)
 
-func _on_turno_iniciado(nombre_jugador: String):
-	if is_instance_valid(lbl_jugador):
-		lbl_jugador.text = "TURNO DE: " + nombre_jugador
-		print("PC: Mostrando turno en pantalla: " + nombre_jugador)
-	else:
-		print("⚠️ PC: No se encontró el Label LBL_JUGADOR.")
+func iniciar_turno(indice: int):
+	if indice >= Global.get_jugadores().size():
+		return
+		
+	indice_turno_actual = indice
+	var jugador = Global.get_jugadores()[indice]
+	var color = jugador["color"]
+	
+	if lbl_jugador:
+		lbl_jugador.text = "TURNO DE: JUGADOR " + color
+		print("🎲 Turno del Jugador " + color)
+	
+	actualizar_tiempo_ui()
+
+func actualizar_tiempo_ui():
+	if lbl_tiempo:
+		lbl_tiempo.text = "TIEMPO: " + str(Global.get_tiempo_restante()) + " min"
+
+# ✅ SIMULADOR DE LECTOR NFC
+func _on_nfc_escaneado(texto: String):
+	if texto.strip_edges() == "": return
+	var codigo = texto.strip_edges().to_upper()
+	txt_nfc.text = "" # Limpiar
+	txt_nfc.grab_focus()
+	
+	print("📡 NFC Escaneado: " + codigo)
+	
+	# Si el DM escribe "15" o "ROOM15"
+	if codigo.begins_with("ROOM") or codigo.is_valid_int():
+		var num_str = codigo.replace("ROOM", "")
+		var num = int(num_str)
+		var nombre_hab = "Room%02d" % num
+		
+		# Aquí irá la lógica para crear la habitación en la dirección que el jugador quiera
+		print("✅ Tarjeta escaneada: " + nombre_hab)
+		# (Por ahora solo imprime en consola)
+		
+	elif codigo == "LLAVE" or codigo == "PILA" or codigo == "MARTILLO":
+		print("🎁 Objeto escaneado: " + codigo)
+		# Aquí irá la lógica para sumar el objeto al jugador
 
 func crear_tablero():
 	for child in mapa_contenido.get_children():
@@ -139,8 +168,7 @@ func calcular_posiciones_habitaciones() -> Dictionary:
 	return posiciones
 
 func refrescar_tablero_completo():
-	if refrescando:
-		return
+	if refrescando: return
 	refrescando = true
 	
 	print("🗺️ PC: Refrescando tablero completo")
@@ -175,8 +203,7 @@ func refrescar_tablero_completo():
 func crear_habitacion_en_tablero(nombre_habitacion: String, posicion: Vector2):
 	var ruta = "res://ASSET/Rooms/" + nombre_habitacion + ".png"
 	var textura = load(ruta)
-	if not textura:
-		return
+	if not textura: return
 	
 	var room_node = Node2D.new()
 	room_node.name = "ROOM_" + nombre_habitacion
@@ -205,34 +232,26 @@ func crear_habitacion_en_tablero(nombre_habitacion: String, posicion: Vector2):
 	habitaciones_nodos[nombre_habitacion] = room_node
 
 func dibujar_puertas_y_fichas_habitacion(nombre_habitacion: String):
-	if not nombre_habitacion in habitaciones_nodos:
-		return
-	
+	if not nombre_habitacion in habitaciones_nodos: return
 	var room_node = habitaciones_nodos.get(nombre_habitacion)
-	if not is_instance_valid(room_node):
-		return
+	if not is_instance_valid(room_node): return
 	
 	var capa_puertas = room_node.get_node_or_null("CAPA_PUERTAS")
 	var capa_fichas = room_node.get_node_or_null("CAPA_FICHAS")
-	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas):
-		return
+	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas): return
 	
 	for child in capa_puertas.get_children():
-		if is_instance_valid(child):
-			child.queue_free()
+		if is_instance_valid(child): child.queue_free()
 	for child in capa_fichas.get_children():
-		if is_instance_valid(child):
-			child.queue_free()
+		if is_instance_valid(child): child.queue_free()
 	
 	await get_tree().process_frame
 	await get_tree().process_frame
 	
-	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas):
-		return
+	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas): return
 	
 	var estado = RoomData.get_estado_habitacion(nombre_habitacion)
-	if estado.is_empty():
-		return
+	if estado.is_empty(): return
 	
 	var puertas = estado.get("puertas", {})
 	for direccion in puertas:
@@ -240,8 +259,7 @@ func dibujar_puertas_y_fichas_habitacion(nombre_habitacion: String):
 		var estado_puerta = info.get("estado", "cerrada")
 		var posicion = RoomData.get_posicion_puerta(direccion)
 		
-		if estado_puerta == "sin_puerta":
-			continue
+		if estado_puerta == "sin_puerta": continue
 		
 		crear_puerta_en_room(direccion, posicion, estado_puerta, capa_puertas)
 		
@@ -251,8 +269,7 @@ func dibujar_puertas_y_fichas_habitacion(nombre_habitacion: String):
 			crear_ficha_en_room(direccion, "lupa", posicion, capa_fichas)
 
 func crear_puerta_en_room(direccion: String, posicion: Vector2, estado: String, capa: Node2D):
-	if not is_instance_valid(capa):
-		return
+	if not is_instance_valid(capa): return
 	
 	var puerta = PUERTA_SCENE.instantiate()
 	puerta.name = "PUERTA_" + direccion.to_upper()
@@ -281,8 +298,7 @@ func crear_puerta_en_room(direccion: String, posicion: Vector2, estado: String, 
 				puertas_cerradas.animation = animacion
 				puertas_cerradas.play()
 				puertas_cerradas.visible = true
-		if puertas_abiertas:
-			puertas_abiertas.visible = false
+		if puertas_abiertas: puertas_abiertas.visible = false
 	else:
 		if puertas_abiertas:
 			var animacion = "PUERTA_" + codigo_dir + "_ABIERTA"
@@ -290,14 +306,12 @@ func crear_puerta_en_room(direccion: String, posicion: Vector2, estado: String, 
 				puertas_abiertas.animation = animacion
 				puertas_abiertas.play()
 				puertas_abiertas.visible = true
-		if puertas_cerradas:
-			puertas_cerradas.visible = false
+		if puertas_cerradas: puertas_cerradas.visible = false
 	
 	capa.add_child(puerta)
 
 func crear_ficha_en_room(direccion: String, tipo: String, posicion: Vector2, capa: Node2D):
-	if not is_instance_valid(capa):
-		return
+	if not is_instance_valid(capa): return
 	
 	var escena_ficha = null
 	match tipo.to_lower():
@@ -306,8 +320,7 @@ func crear_ficha_en_room(direccion: String, tipo: String, posicion: Vector2, cap
 		"interactuar": escena_ficha = FICHA_INTERACTUAR
 		"objeto":      escena_ficha = FICHA_OBJETO
 	
-	if not escena_ficha:
-		return
+	if not escena_ficha: return
 	
 	var ficha = escena_ficha.instantiate()
 	ficha.name = "FICHA_" + direccion.to_upper() + "_" + tipo.to_upper()
@@ -316,7 +329,28 @@ func crear_ficha_en_room(direccion: String, tipo: String, posicion: Vector2, cap
 	ficha.position = posicion + offset
 	ficha.scale = Vector2(escala_ficha, escala_ficha)
 	
+	# ✅ CONECTAR EL CLIC EN LA FICHA PARA EL DM
+	if ficha.has_signal("pressed"):
+		ficha.pressed.connect(_on_ficha_clickeada.bind(direccion, tipo))
+	
 	capa.add_child(ficha)
+
+# ✅ LÓGICA CUANDO EL DM HACE CLIC EN UNA LUPA O FLECHA
+func _on_ficha_clickeada(direccion: String, tipo: String):
+	print("🖱️ DM hizo clic en ficha " + tipo + " en dirección " + direccion)
+	
+	if tipo == "lupa":
+		# Abrir la puerta
+		RoomData.guardar_estado_habitacion_puerta("Room00", direccion, "abierta") # Idealmente usar la habitación del jugador
+		refrescar_tablero_completo()
+		Global.restar_tiempo(1) # Restar tiempo por explorar
+		actualizar_tiempo_ui()
+		
+	elif tipo == "caminar":
+		# Mover al jugador (por ahora movemos al jugador 0)
+		Global.restar_tiempo(2) # Restar tiempo por cruzar
+		actualizar_tiempo_ui()
+		print("🚶‍♂️ Jugador se mueve a la derecha (simulado)")
 
 func obtener_offset_ficha(direccion: String) -> Vector2:
 	match direccion.to_lower():
@@ -335,150 +369,57 @@ func obtener_codigo_direccion(direccion: String) -> String:
 	return "ARR"
 
 func cargar_avatares_en_habitacion(nombre_habitacion: String):
-	if not nombre_habitacion in habitaciones_nodos:
-		return
-	
+	if not nombre_habitacion in habitaciones_nodos: return
 	var room_node = habitaciones_nodos.get(nombre_habitacion)
-	if not is_instance_valid(room_node):
-		return
+	if not is_instance_valid(room_node): return
 	
 	var capa_avatares = room_node.get_node_or_null("CAPA_AVATARES")
-	if not is_instance_valid(capa_avatares):
-		return
+	if not is_instance_valid(capa_avatares): return
 	
 	for child in capa_avatares.get_children():
-		if is_instance_valid(child):
-			child.queue_free()
+		if is_instance_valid(child): child.queue_free()
 	
 	await get_tree().process_frame
 	await get_tree().process_frame
 	
-	if not is_instance_valid(capa_avatares):
-		return
+	# ✅ Ahora leemos los colores desde Global
+	var jugadores = Global.get_jugadores()
+	var posiciones = calcular_posiciones_avatares(jugadores.size(), Vector2(256, 256))
 	
-	var nombres_aqui = RoomData.get_jugadores_en_habitacion(nombre_habitacion)
-	var jugadores_conectados_aqui: Array = []
-	
-	for nombre in nombres_aqui:
-		var j = Global.get_jugador_por_nombre(nombre)
-		if j.get("conectado", false) == true:
-			jugadores_conectados_aqui.append(j)
-	
-	if jugadores_conectados_aqui.size() == 0:
-		return
-	
-	var centro_habitacion = Vector2(256, 256)
-	var posiciones = calcular_posiciones_avatares(jugadores_conectados_aqui.size(), centro_habitacion)
-	
-	var indice = 0
-	for jugador in jugadores_conectados_aqui:
-		var nombre = jugador.get("nombre", "???")
-		var color = jugador.get("color", "")
-		
-		if not is_instance_valid(capa_avatares):
-			return
-		
+	for i in range(jugadores.size()):
+		var color = jugadores[i].get("color", "")
 		var avatar = AVATAR_SCENE.instantiate()
-		avatar.name = "AVATAR_" + nombre
+		avatar.name = "AVATAR_" + color
 		avatar.scale = Vector2(escala_avatar, escala_avatar)
-		
-		if indice < posiciones.size():
-			avatar.position = posiciones[indice]
+		avatar.position = posiciones[i]
 		
 		capa_avatares.add_child(avatar)
 		
 		await get_tree().process_frame
-		
-		if is_instance_valid(avatar):
-			configurar_animacion_avatar(avatar, color)
-		
-		indice += 1
+		configurar_animacion_avatar(avatar, color)
 
 func calcular_posiciones_avatares(cantidad: int, centro: Vector2) -> Array:
 	var posiciones = []
 	if cantidad == 1:
 		posiciones.append(centro)
 		return posiciones
-	
 	var radio = radio_circulo
 	var angulo_inicial = -PI / 2
 	var angulo_entre = (2 * PI) / cantidad
-	
 	for i in range(cantidad):
 		var angulo = angulo_inicial + (angulo_entre * i)
-		var pos = centro + Vector2(cos(angulo), sin(angulo)) * radio
-		posiciones.append(pos)
-	
+		posiciones.append(centro + Vector2(cos(angulo), sin(angulo)) * radio)
 	return posiciones
 
 func configurar_animacion_avatar(avatar: Node, color: String):
-	if not is_instance_valid(avatar):
-		return
+	if not is_instance_valid(avatar): return
 	var animated_sprite = avatar.find_child("AVATAR_ANIMACION", true, false)
-	if not animated_sprite:
-		return
+	if not animated_sprite: return
 	var nombre_animacion = "AVATAR_" + color.to_upper().strip_edges()
 	if animated_sprite.sprite_frames.has_animation(nombre_animacion):
 		animated_sprite.animation = nombre_animacion
 		animated_sprite.frame = 0
 		animated_sprite.play()
-
-func refrescar_todos_los_avatares():
-	for nombre_hab in habitaciones_nodos.keys():
-		if is_instance_valid(habitaciones_nodos.get(nombre_hab)):
-			await cargar_avatares_en_habitacion(nombre_hab)
-
-func _on_jugadores_actualizados():
-	await refrescar_todos_los_avatares()
-
-func _on_habitacion_actualizada(_nombre_habitacion: String):
-	await refrescar_tablero_completo()
-
-func _on_sync_puerta_visual(habitacion: String, direccion: String, nuevo_estado: String):
-	if not habitacion in habitaciones_nodos:
-		return
-	
-	var room_node = habitaciones_nodos.get(habitacion)
-	if not is_instance_valid(room_node):
-		return
-	
-	var capa_puertas = room_node.get_node_or_null("CAPA_PUERTAS")
-	var capa_fichas = room_node.get_node_or_null("CAPA_FICHAS")
-	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas):
-		return
-	
-	for child in capa_puertas.get_children():
-		if is_instance_valid(child):
-			child.queue_free()
-	for child in capa_fichas.get_children():
-		if is_instance_valid(child):
-			child.queue_free()
-	
-	await get_tree().process_frame
-	await get_tree().process_frame
-	
-	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas):
-		return
-	
-	var estado = RoomData.get_estado_habitacion(habitacion)
-	if estado.is_empty():
-		return
-	
-	var puertas = estado.get("puertas", {})
-	for dir in puertas:
-		var info = puertas[dir]
-		var estado_puerta = info.get("estado", "cerrada")
-		var posicion = RoomData.get_posicion_puerta(dir)
-		
-		if estado_puerta == "sin_puerta":
-			continue
-		
-		crear_puerta_en_room(dir, posicion, estado_puerta, capa_puertas)
-		
-		if estado_puerta == "abierta":
-			crear_ficha_en_room(dir, "caminar", posicion, capa_fichas)
-		else:
-			crear_ficha_en_room(dir, "lupa", posicion, capa_fichas)
 
 func _input(event: InputEvent):
 	if event is InputEventMouseButton:

@@ -1,36 +1,28 @@
 extends Node2D
 
 func _ready():
-	# Conectar botones
 	$Panel/BTN_VOLVER.connect("pressed", Callable(self, "on_btn_volver_pressed"))
-	$Panel/BTN_CREAR_SALA.connect("pressed", Callable(self, "on_btn_crear_sala_pressed"))
+	$Panel/BTN_CREAR_SALA.connect("pressed", Callable(self, "on_btn_continuar_pressed"))
 	
-	# ✅ Configurar SpinBox de CANT_JUGADORES
 	var spin_jugadores = $Panel/CANT_JUGADORES
 	if spin_jugadores:
 		spin_jugadores.min_value = 2
-		spin_jugadores.max_value = 6
+		spin_jugadores.max_value = 4
 		spin_jugadores.value = 2
 		spin_jugadores.step = 1
-		if not spin_jugadores.value_changed.is_connected(_on_cant_jugadores_changed):
-			spin_jugadores.value_changed.connect(_on_cant_jugadores_changed)
+		spin_jugadores.value_changed.connect(_on_valor_changed)
 	
-	# ✅ Configurar SpinBox de CANT_TIEMPO
 	var spin_tiempo = $Panel/CANT_TIEMPO
 	if spin_tiempo:
-		spin_tiempo.min_value = 60
+		spin_tiempo.min_value = 30
 		spin_tiempo.max_value = 120
 		spin_tiempo.value = 60
-		spin_tiempo.step = 30
-		if not spin_tiempo.value_changed.is_connected(_on_tiempo_changed):
-			spin_tiempo.value_changed.connect(_on_tiempo_changed)
+		spin_tiempo.step = 10
+		spin_tiempo.value_changed.connect(_on_valor_changed)
 	
 	actualizar_labels()
 
-func _on_cant_jugadores_changed(valor: float):
-	actualizar_labels()
-
-func _on_tiempo_changed(valor: float):
+func _on_valor_changed(_valor):
 	actualizar_labels()
 
 func actualizar_labels():
@@ -43,47 +35,11 @@ func actualizar_labels():
 func on_btn_volver_pressed():
 	get_tree().change_scene_to_file("res://SCENE/MAIN_MENU.tscn")
 
-func on_btn_crear_sala_pressed():
-	var nombre_sala = $Panel/TXT_SALA.text.strip_edges()
+func on_btn_continuar_pressed():
 	var cant_jugadores = int($Panel/CANT_JUGADORES.value)
 	var tiempo_juego = int($Panel/CANT_TIEMPO.value)
 	
-	if nombre_sala == "":
-		print("❌ ERROR: Debes ingresar un nombre de sala")
-		return
+	Global.nueva_partida(cant_jugadores, tiempo_juego)
 	
-	print("")
-	print("╔═══════════════════════════════════════╗")
-	print("║     CREANDO SALA (PC-HOST)            ║")
-	print("╚═══════════════════════════════════════╝")
-	print("   Nombre: " + nombre_sala)
-	print("   Cant. jugadores: " + str(cant_jugadores))
-	print("   Tiempo: " + str(tiempo_juego) + " min")
-	
-	# ✅ CREAR NUEVA PARTIDA DESDE CERO
-	Global.nueva_partida(nombre_sala, cant_jugadores, tiempo_juego)
-	
-	if Network.start_host():
-		# ✅ Inicializar sala Y jugadores
-		Network.salas[nombre_sala] = []
-		Network.jugadores[nombre_sala] = []
-		Network.sala_actual = nombre_sala
-		
-		# ✅ Guardar datos adicionales
-		Network.datos_salas[nombre_sala] = {
-			"cant_jugadores": cant_jugadores,
-			"tiempo_juego": tiempo_juego,
-			"jugadores_listos": []
-		}
-		
-		print("✅ SALA CREADA EXITOSAMENTE")
-		print("   Salas: " + str(Network.salas.keys()))
-		print("   Jugadores (vacío): " + str(Network.jugadores))
-		
-		# Sincronizar
-		Network.sync_salas.rpc(Network.salas)
-		Network.sync_datos_salas.rpc(Network.datos_salas)
-		
-		get_tree().change_scene_to_file("res://SCENE/LOBBY.tscn")
-	else:
-		print("❌ ERROR: No se pudo iniciar el servidor")
+	print("✅ Configuración guardada. Pasando a Colores...")
+	get_tree().change_scene_to_file("res://SCENE/COLORES.tscn")
