@@ -68,6 +68,12 @@ var lbl_tiempo: Label = null
 var txt_nfc: LineEdit = null
 var indice_turno_actual: int = 0
 
+# ✅ Variables para la ventana de código
+var ventana_codigo: Control
+var txt_codigo: LineEdit
+var lbl_error: Label
+var direccion_pendiente: String = ""
+
 func _ready():
 	print("=== PC: Iniciando Tablero DM ===")
 	
@@ -81,7 +87,21 @@ func _ready():
 	
 	if txt_nfc:
 		txt_nfc.text_submitted.connect(_on_nfc_escaneado)
-		txt_nfc.grab_focus() # Para que el DM pueda escribir directo
+		txt_nfc.grab_focus() 
+	
+	# ✅ Configurar ventana de código (busca los nodos en la escena)
+	ventana_codigo = find_child("VENTANA_CODIGO", true, false)
+	if ventana_codigo:
+		txt_codigo = ventana_codigo.find_child("TXT_CODIGO", true, false)
+		lbl_error = ventana_codigo.find_child("LBL_ERROR", true, false)
+		var btn_ok = ventana_codigo.find_child("BTN_OK", true, false)
+		var btn_cancelar = ventana_codigo.find_child("BTN_CANCELAR", true, false)
+		
+		if btn_ok: btn_ok.pressed.connect(_on_btn_ok_codigo)
+		if btn_cancelar: btn_cancelar.pressed.connect(_on_btn_cancelar_codigo)
+		if txt_codigo: txt_codigo.text_submitted.connect(_on_txt_codigo_submitted)
+		
+		ventana_codigo.visible = false
 	
 	RoomData.inicializar_room00_por_defecto()
 	
@@ -90,12 +110,10 @@ func _ready():
 	await refrescar_tablero_completo()
 	centrar_en_room00()
 	
-	# Iniciar turno con el primer jugador de la lista
 	iniciar_turno(0)
 
 func iniciar_turno(indice: int):
-	if indice >= Global.get_jugadores().size():
-		return
+	if indice >= Global.get_jugadores().size(): return
 		
 	indice_turno_actual = indice
 	var jugador = Global.get_jugadores()[indice]
@@ -111,89 +129,148 @@ func actualizar_tiempo_ui():
 	if lbl_tiempo:
 		lbl_tiempo.text = "TIEMPO: " + str(Global.get_tiempo_restante()) + " min"
 
-# ✅ SIMULADOR DE LECTOR NFC
 func _on_nfc_escaneado(texto: String):
 	if texto.strip_edges() == "": return
-	var codigo = texto.strip_edges().to_upper()
-	txt_nfc.text = "" # Limpiar
+	txt_nfc.text = "" 
 	txt_nfc.grab_focus()
-	
-	print("📡 NFC Escaneado: " + codigo)
-	
-	# Si el DM escribe "15" o "ROOM15"
-	if codigo.begins_with("ROOM") or codigo.is_valid_int():
-		var num_str = codigo.replace("ROOM", "")
-		var num = int(num_str)
-		var nombre_hab = "Room%02d" % num
-		
-		# Aquí irá la lógica para crear la habitación en la dirección que el jugador quiera
-		print("✅ Tarjeta escaneada: " + nombre_hab)
-		# (Por ahora solo imprime en consola)
-		
-	elif codigo == "LLAVE" or codigo == "PILA" or codigo == "MARTILLO":
-		print("🎁 Objeto escaneado: " + codigo)
-		# Aquí irá la lógica para sumar el objeto al jugador
+	procesar_codigo(texto)
 
+# ✅ VENTANA DE CÓDIGO
+func mostrar_ventana_codigo(direccion: String):
+	direccion_pendiente = direccion
+	if ventana_codigo:
+		ventana_codigo.visible = true
+		txt_codigo.text = ""
+		lbl_error.text = ""
+		txt_codigo.grab_focus()
+
+func ocultar_ventana_codigo():
+	if ventana_codigo:
+		ventana_codigo.visible = false
+		direccion_pendiente = ""
+
+func _on_btn_ok_codigo():
+	procesar_codigo(txt_codigo.text)
+
+func _on_txt_codigo_submitted(texto: String):
+	procesar_codigo(texto)
+
+func _on_btn_cancelar_codigo():
+	ocultar_ventana_codigo()
+
+func procesar_codigo(codigo_ingresado: String):
+	var hab_actual = "Room00" # Cambiar por RoomData.get_habitacion_del_turno(indice_turno_actual)
+	
+	# Validar código
+	var resultado = RoomData.validar_codigo_habitacion(codigo_ingresado, hab_actual)
+	
+	if not resultado["valido"]:
+		if lbl_error: 
+			lbl_error.text = "❌ " + resultado["error"]
+			lbl_error.add_theme_color_override("font_color", Color(1, 0.2, 0.2))
+		return
+	
+	var nueva_hab = resultado["nombre_habitacion"]
+	
+	# 1. Coordenadas
+	var coord_origen = RoomData.get_coord_habitacion(hab_actual)
+	var coord_destino = RoomData.calcular_coord_vecina(coord_origen.x, coord_origen.y, direccion_pendiente)
+	
+	# 2. Generar puertas y guardar estado
+	var dir_opuesta = RoomData.obtener_direccion_opuesta(direccion_pendiente)
+	var estado_puertas = RoomData.generar_puertas_para_habitacion(nueva_hab, coord_destino, dir_opuesta)
+	
+	var estado = {"puertas": {}}
+	for d in estado_puertas:
+		estado["puertas"][d] = {"estado": estado_puertas[d]}
+	
+	# 3. Registrar en la malla
+	RoomData.guardar_estado_habitacion(nueva_hab, estado)
+	RoomData.agregar_habitacion_colocada(nueva_hab)
+	RoomData.agregar_a_malla(nueva_hab, coord_destino.x, coord_destino.y)
+	
+	# 4. Abrir puerta de origen y registrar conexión
+	RoomData.guardar_estado_habitacion_puerta(hab_actual, direccion_pendiente, "abierta")
+	RoomData.registrar_conexion(hab_actual, direccion_pendiente, nueva_hab)
+	
+	# 5. Cerrar ventana y refrescar el mapa
+	ocultar_ventana_codigo()
+	refrescar_tablero_completo()
+	
+	print("✅ Habitación " + nueva_hab + " agregada al tablero.")
+
+# ✅ LÓGICA CUANDO EL DM HACE CLIC EN UNA FICHA
+func _on_ficha_clickeada(direccion: String, tipo: String):
+	print("🖱️ DM hizo clic en ficha " + tipo + " en dirección " + direccion)
+	
+	var hab_actual = "Room00" # Cambiar por RoomData.get_habitacion_del_turno(indice_turno_actual)
+	
+	if tipo == "lupa":
+		# Abrir la puerta (si no estaba abierta)
+		RoomData.guardar_estado_habitacion_puerta(hab_actual, direccion, "abierta")
+		Global.restar_tiempo(1) # Restar tiempo
+		actualizar_tiempo_ui()
+		refrescar_tablero_completo()
+		
+	elif tipo == "caminar":
+		# Intentar cruzar la puerta
+		if RoomData.hay_conexion(hab_actual, direccion):
+			# Ya hay una habitación de ese lado, mover al jugador
+			print("🚶‍♂️ Jugador se mueve a " + RoomData.get_habitacion_conectada(hab_actual, direccion))
+			Global.restar_tiempo(2)
+			actualizar_tiempo_ui()
+			refrescar_tablero_completo() # Actualizar vista
+		else:
+			# No hay habitación, pedir código
+			mostrar_ventana_codigo(direccion)
+
+# ============================================
+# EL RESTO DE LAS FUNCIONES (Iguales a las anteriores)
+# ============================================
 func crear_tablero():
 	for child in mapa_contenido.get_children():
 		child.queue_free()
-	
 	tablero = Node2D.new()
 	tablero.name = "TABLERO"
 	mapa_contenido.add_child(tablero)
 
 func centrar_en_room00():
-	if not tablero:
-		return
-	
+	if not tablero: return
 	var tamaño_hab = RoomData.get_tamaño_habitacion()
 	var centro_room00 = Vector2(tamaño_hab.x / 2, tamaño_hab.y / 2)
-	
 	var tamaño_panel = panel_mapa.size
 	var centro_panel = tamaño_panel / 2
-	
-	var pos_deseada = centro_panel - (centro_room00 * zoom_actual)
-	mapa_contenido.position = pos_deseada
+	mapa_contenido.position = centro_panel - (centro_room00 * zoom_actual)
 
 func calcular_posiciones_habitaciones() -> Dictionary:
 	var posiciones = {}
 	var tamaño_hab = RoomData.get_tamaño_habitacion()
 	var paso = Vector2(tamaño_hab.x + MARGEN_ENTRE_HABITACIONES, tamaño_hab.y + MARGEN_ENTRE_HABITACIONES)
-	
 	for key in RoomData.malla_habitaciones:
 		var nombre = RoomData.malla_habitaciones[key]
 		var coord = RoomData.string_a_coord(key)
 		posiciones[nombre] = Vector2(coord.x * paso.x, coord.y * paso.y)
-	
 	return posiciones
 
 func refrescar_tablero_completo():
 	if refrescando: return
 	refrescando = true
 	
-	print("🗺️ PC: Refrescando tablero completo")
-	
 	for child in tablero.get_children():
-		if is_instance_valid(child):
-			child.queue_free()
+		if is_instance_valid(child): child.queue_free()
 	habitaciones_nodos.clear()
 	
 	await get_tree().process_frame
 	await get_tree().process_frame
 	
 	var posiciones = calcular_posiciones_habitaciones()
-	
-	print("🗺️ PC: Dibujando " + str(posiciones.size()) + " habitaciones")
-	
 	for nombre_habitacion in posiciones:
-		var pos = posiciones[nombre_habitacion]
-		crear_habitacion_en_tablero(nombre_habitacion, pos)
+		crear_habitacion_en_tablero(nombre_habitacion, posiciones[nombre_habitacion])
 	
 	await get_tree().process_frame
 	
 	for nombre_habitacion in habitaciones_nodos.keys():
-		if not is_instance_valid(habitaciones_nodos.get(nombre_habitacion)):
-			continue
+		if not is_instance_valid(habitaciones_nodos.get(nombre_habitacion)): continue
 		dibujar_puertas_y_fichas_habitacion(nombre_habitacion)
 		await cargar_avatares_en_habitacion(nombre_habitacion)
 	
@@ -213,7 +290,6 @@ func crear_habitacion_en_tablero(nombre_habitacion: String, posicion: Vector2):
 	sprite.texture = textura
 	sprite.name = "FONDO"
 	sprite.centered = false
-	sprite.position = Vector2.ZERO
 	room_node.add_child(sprite)
 	
 	var capa_puertas = Node2D.new()
@@ -248,8 +324,6 @@ func dibujar_puertas_y_fichas_habitacion(nombre_habitacion: String):
 	await get_tree().process_frame
 	await get_tree().process_frame
 	
-	if not is_instance_valid(capa_puertas) or not is_instance_valid(capa_fichas): return
-	
 	var estado = RoomData.get_estado_habitacion(nombre_habitacion)
 	if estado.is_empty(): return
 	
@@ -262,7 +336,6 @@ func dibujar_puertas_y_fichas_habitacion(nombre_habitacion: String):
 		if estado_puerta == "sin_puerta": continue
 		
 		crear_puerta_en_room(direccion, posicion, estado_puerta, capa_puertas)
-		
 		if estado_puerta == "abierta":
 			crear_ficha_en_room(direccion, "caminar", posicion, capa_fichas)
 		else:
@@ -274,15 +347,8 @@ func crear_puerta_en_room(direccion: String, posicion: Vector2, estado: String, 
 	var puerta = PUERTA_SCENE.instantiate()
 	puerta.name = "PUERTA_" + direccion.to_upper()
 	
-	var escala_puerta
-	var offset_puerta
-	
-	if estado == "cerrada":
-		escala_puerta = escala_puerta_cerrada.get(direccion, Vector2(0.4, 0.4))
-		offset_puerta = offset_puerta_cerrada.get(direccion, Vector2.ZERO)
-	else:
-		escala_puerta = escala_puerta_abierta.get(direccion, Vector2(0.4, 0.4))
-		offset_puerta = offset_puerta_abierta.get(direccion, Vector2.ZERO)
+	var escala_puerta = escala_puerta_cerrada.get(direccion, Vector2(0.4, 0.4)) if estado == "cerrada" else escala_puerta_abierta.get(direccion, Vector2(0.4, 0.4))
+	var offset_puerta = offset_puerta_cerrada.get(direccion, Vector2.ZERO) if estado == "cerrada" else offset_puerta_abierta.get(direccion, Vector2.ZERO)
 	
 	puerta.position = posicion + offset_puerta
 	puerta.scale = escala_puerta
@@ -312,7 +378,6 @@ func crear_puerta_en_room(direccion: String, posicion: Vector2, estado: String, 
 
 func crear_ficha_en_room(direccion: String, tipo: String, posicion: Vector2, capa: Node2D):
 	if not is_instance_valid(capa): return
-	
 	var escena_ficha = null
 	match tipo.to_lower():
 		"lupa":        escena_ficha = FICHA_LUPA
@@ -321,7 +386,6 @@ func crear_ficha_en_room(direccion: String, tipo: String, posicion: Vector2, cap
 		"objeto":      escena_ficha = FICHA_OBJETO
 	
 	if not escena_ficha: return
-	
 	var ficha = escena_ficha.instantiate()
 	ficha.name = "FICHA_" + direccion.to_upper() + "_" + tipo.to_upper()
 	
@@ -329,28 +393,10 @@ func crear_ficha_en_room(direccion: String, tipo: String, posicion: Vector2, cap
 	ficha.position = posicion + offset
 	ficha.scale = Vector2(escala_ficha, escala_ficha)
 	
-	# ✅ CONECTAR EL CLIC EN LA FICHA PARA EL DM
 	if ficha.has_signal("pressed"):
 		ficha.pressed.connect(_on_ficha_clickeada.bind(direccion, tipo))
 	
 	capa.add_child(ficha)
-
-# ✅ LÓGICA CUANDO EL DM HACE CLIC EN UNA LUPA O FLECHA
-func _on_ficha_clickeada(direccion: String, tipo: String):
-	print("🖱️ DM hizo clic en ficha " + tipo + " en dirección " + direccion)
-	
-	if tipo == "lupa":
-		# Abrir la puerta
-		RoomData.guardar_estado_habitacion_puerta("Room00", direccion, "abierta") # Idealmente usar la habitación del jugador
-		refrescar_tablero_completo()
-		Global.restar_tiempo(1) # Restar tiempo por explorar
-		actualizar_tiempo_ui()
-		
-	elif tipo == "caminar":
-		# Mover al jugador (por ahora movemos al jugador 0)
-		Global.restar_tiempo(2) # Restar tiempo por cruzar
-		actualizar_tiempo_ui()
-		print("🚶‍♂️ Jugador se mueve a la derecha (simulado)")
 
 func obtener_offset_ficha(direccion: String) -> Vector2:
 	match direccion.to_lower():
@@ -372,7 +418,6 @@ func cargar_avatares_en_habitacion(nombre_habitacion: String):
 	if not nombre_habitacion in habitaciones_nodos: return
 	var room_node = habitaciones_nodos.get(nombre_habitacion)
 	if not is_instance_valid(room_node): return
-	
 	var capa_avatares = room_node.get_node_or_null("CAPA_AVATARES")
 	if not is_instance_valid(capa_avatares): return
 	
@@ -382,7 +427,6 @@ func cargar_avatares_en_habitacion(nombre_habitacion: String):
 	await get_tree().process_frame
 	await get_tree().process_frame
 	
-	# ✅ Ahora leemos los colores desde Global
 	var jugadores = Global.get_jugadores()
 	var posiciones = calcular_posiciones_avatares(jugadores.size(), Vector2(256, 256))
 	
@@ -392,9 +436,7 @@ func cargar_avatares_en_habitacion(nombre_habitacion: String):
 		avatar.name = "AVATAR_" + color
 		avatar.scale = Vector2(escala_avatar, escala_avatar)
 		avatar.position = posiciones[i]
-		
 		capa_avatares.add_child(avatar)
-		
 		await get_tree().process_frame
 		configurar_animacion_avatar(avatar, color)
 
@@ -424,7 +466,6 @@ func configurar_animacion_avatar(avatar: Node, color: String):
 func _input(event: InputEvent):
 	if event is InputEventMouseButton:
 		var pos_mouse = get_global_mouse_position()
-		
 		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 			aplicar_zoom_en_posicion(zoom_actual + velocidad_zoom, pos_mouse)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
@@ -438,11 +479,9 @@ func _input(event: InputEvent):
 					posicion_inicial_mapa = mapa_contenido.position
 				else:
 					arrastrando = false
-	
 	if event is InputEventMouseMotion and arrastrando:
 		var pos_mouse = get_global_mouse_position()
-		var delta = pos_mouse - posicion_inicial_mouse
-		mapa_contenido.position = posicion_inicial_mapa + delta
+		mapa_contenido.position = posicion_inicial_mapa + (pos_mouse - posicion_inicial_mouse)
 
 func aplicar_zoom_en_posicion(nuevo_zoom: float, punto_pantalla: Vector2):
 	var zoom_clamped = clamp(nuevo_zoom, zoom_minimo, zoom_maximo)

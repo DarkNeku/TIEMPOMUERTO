@@ -186,13 +186,17 @@ func get_estado_habitacion(nombre: String) -> Dictionary:
 # ============================================
 func validar_codigo_habitacion(codigo: String, habitacion_actual: String) -> Dictionary:
 	var resultado = {"valido": false, "error": "", "nombre_habitacion": ""}
-	var codigo_limpio = codigo.strip_edges()
+	var codigo_limpio = codigo.strip_edges().to_upper()
+	
+	# Aceptar "ROOM15" o simplemente "15"
+	if codigo_limpio.begins_with("ROOM"):
+		codigo_limpio = codigo_limpio.replace("ROOM", "")
 	
 	if codigo_limpio == "":
 		resultado["error"] = "Debes ingresar un código"
 		return resultado
 	if not codigo_limpio.is_valid_int():
-		resultado["error"] = "El código debe ser un número"
+		resultado["error"] = "El código debe ser un número (ej: 15)"
 		return resultado
 	
 	var numero = int(codigo_limpio)
@@ -243,7 +247,20 @@ func get_jugadores_en_habitacion(nombre_habitacion: String) -> Array:
 	return jugadores_aqui
 
 # ============================================
-# ✅ GENERACIÓN DE PUERTAS (FIX: la entrada no se sobreescribe)
+# ✅ NUEVA FUNCIÓN PARA EL PC.GD
+# Devuelve la habitación actual del jugador según el turno
+# ============================================
+func get_habitacion_del_turno(indice_turno: int) -> String:
+	var jugadores = DataManager.get_jugadores()
+	if indice_turno < 0 or indice_turno >= jugadores.size():
+		return "Room00"
+	var color = jugadores[indice_turno].get("color", "")
+	# Por ahora, como todos empiezan en Room00, devolvemos eso.
+	# Más adelante, si guardás la posición por color, la leés acá.
+	return "Room00" 
+
+# ============================================
+# GENERACIÓN DE PUERTAS
 # ============================================
 func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i, direccion_entrada: String) -> Dictionary:
 	var direcciones = ["arriba", "abajo", "izquierda", "derecha"]
@@ -256,9 +273,7 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 	
 	print("🎲 Generando puertas para " + nombre_habitacion + " en (" + str(coord.x) + "," + str(coord.y) + ") dist=" + str(distancia) + " prob=" + str(probabilidad))
 	
-	# Primera pasada: decidir cada puerta
 	for direccion in direcciones:
-		# ✅ La puerta de entrada SIEMPRE abierta y no se toca después
 		if direccion == direccion_entrada:
 			estado_puertas[direccion] = "abierta"
 			continue
@@ -282,7 +297,6 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 					puerta_vecina_estado = puertas_vecino[direccion_opuesta].get("estado", "")
 			
 			if puerta_vecina_estado == "sin_puerta" or puerta_vecina_estado == "":
-				print("   🚫 Vecino " + habitacion_vecina + " no tiene puerta en " + direccion_opuesta + ". Forzando sin_puerta.")
 				estado_puertas[direccion] = "sin_puerta"
 			else:
 				estado_puertas[direccion] = "cerrada"
@@ -294,23 +308,19 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 		else:
 			estado_puertas[direccion] = "sin_puerta"
 	
-	# ✅ Segunda pasada: garantizar mínimo de puertas (SIN contar ni tocar la entrada)
 	var minimo_puertas = 2 if distancia <= 3 else 1
 	var puertas_actuales = 0
 	
 	for d in direcciones:
-		if d == direccion_entrada:
-			continue  # No contar la entrada
-		if estado_puertas[d] != "sin_puerta":
-			puertas_actuales += 1
+		if d == direccion_entrada: continue
+		if estado_puertas[d] != "sin_puerta": puertas_actuales += 1
 	
 	if puertas_actuales < minimo_puertas:
 		var faltan = minimo_puertas - puertas_actuales
 		var candidatos = []
 		
 		for d in direcciones:
-			if d == direccion_entrada:
-				continue  # No forzar la entrada
+			if d == direccion_entrada: continue
 			if estado_puertas[d] == "sin_puerta":
 				var coord_v = calcular_coord_vecina(coord.x, coord.y, d)
 				if es_coord_valida(coord_v.x, coord_v.y):
@@ -327,11 +337,6 @@ func generar_puertas_para_habitacion(nombre_habitacion: String, coord: Vector2i,
 		candidatos.shuffle()
 		for i in range(min(faltan, candidatos.size())):
 			estado_puertas[candidatos[i]] = "cerrada"
-	
-	var resumen = ""
-	for d in direcciones:
-		resumen += d + "=" + estado_puertas[d] + " "
-	print("   ✅ Resultado: " + resumen)
 	
 	return estado_puertas
 
