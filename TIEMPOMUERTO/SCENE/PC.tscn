@@ -58,6 +58,16 @@ grow_vertical = 0
 theme_override_font_sizes/font_size = 100
 text = "SALAS"
 
+[node name="BTN_SIGUIENTE_TURNO" type="Button" parent="Panel" unique_id=1672407632]
+visible = false
+layout_mode = 0
+offset_left = 442.0
+offset_top = 617.0
+offset_right = 894.0
+offset_bottom = 694.0
+theme_override_font_sizes/font_size = 50
+text = "SIGUIENTE TURNO"
+
 [node name="LBL_JUGADOR" type="Label" parent="Panel" unique_id=1722020674]
 layout_mode = 0
 offset_right = 40.0
@@ -77,3 +87,53 @@ offset_left = 431.0
 offset_top = 2.0
 offset_right = 658.0
 offset_bottom = 52.0
+
+[node name="VENTANA_CODIGO" type="Control" parent="Panel" unique_id=1888238652]
+visible = false
+anchors_preset = 0
+offset_left = 270.0
+offset_top = 177.0
+offset_right = 1020.0
+offset_bottom = 502.0
+
+[node name="Panel" type="Panel" parent="Panel/VENTANA_CODIGO" unique_id=1479483001]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TXT_CODIGO" type="LineEdit" parent="Panel/VENTANA_CODIGO" unique_id=1883803987]
+layout_mode = 0
+offset_left = 163.0
+offset_top = 23.0
+offset_right = 576.0
+offset_bottom = 85.0
+
+[node name="LBL_ERROR" type="Label" parent="Panel/VENTANA_CODIGO" unique_id=1111603185]
+layout_mode = 0
+offset_left = 78.0
+offset_top = 127.0
+offset_right = 785.0
+offset_bottom = 196.0
+theme_override_font_sizes/font_size = 50
+text = "ERROR"
+
+[node name="BTN_OK" type="Button" parent="Panel/VENTANA_CODIGO" unique_id=813164909]
+layout_mode = 0
+offset_left = 118.0
+offset_top = 242.0
+offset_right = 197.0
+offset_bottom = 319.0
+theme_override_font_sizes/font_size = 50
+text = "OK"
+
+[node name="BTN_CANCELAR" type="Button" parent="Panel/VENTANA_CODIGO" unique_id=1925327723]
+layout_mode = 0
+offset_left = 507.0
+offset_top = 225.0
+offset_right = 704.0
+offset_bottom = 302.0
+theme_override_font_sizes/font_size = 50
+text = "VOLVER"
